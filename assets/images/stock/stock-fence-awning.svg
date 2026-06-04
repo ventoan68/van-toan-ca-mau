@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="Hàng rào mái che - hình ảnh minh họa">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#06182c"/><stop offset="0.48" stop-color="#1f354a"/><stop offset="1" stop-color="#f97316"/></linearGradient>
+    <radialGradient id="light" cx="72%" cy="20%" r="55%"><stop offset="0" stop-color="#ffffff" stop-opacity=".45"/><stop offset=".42" stop-color="#fb923c" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .09"/></feComponentTransfer><feBlend mode="overlay" in2="SourceGraphic"/></filter>
+    <filter id="shadow"><feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#000" flood-opacity=".28"/></filter>
+    <pattern id="mesh" width="90" height="90" patternUnits="userSpaceOnUse"><path d="M90 0H0V90" fill="none" stroke="#fff" stroke-opacity=".07" stroke-width="2"/></pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <rect width="1600" height="1000" fill="url(#light)"/>
+  <rect width="1600" height="1000" fill="url(#mesh)"/>
+  <g filter="url(#shadow)" opacity=".95">
+    <path d="M-80 750 C260 560 420 430 690 520 S1090 430 1710 190" fill="none" stroke="#f97316" stroke-width="34" stroke-linecap="round" opacity=".85"/>
+    <path d="M150 760 H1450 M220 690 L510 350 L790 690 M870 700 L1120 310 L1380 700" fill="none" stroke="#e8f1f8" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" opacity=".88"/>
+    <path d="M310 760 V410 H590 V760 M720 760 V300 H1060 V760 M1180 760 V475 H1360 V760" fill="none" stroke="#d7e2ec" stroke-width="18" stroke-linejoin="round" opacity=".75"/>
+    <g opacity=".5" stroke="#ffffff" stroke-width="9"><path d="M230 230h850M280 285h600M1030 330h320"/><path d="M280 230l-90 250M620 230l-120 330M960 230l-90 230M1290 330l-160 310"/></g>
+  </g>
+  <rect x="92" y="84" width="1416" height="832" rx="36" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="3"/>
+  <rect width="1600" height="1000" filter="url(#grain)" opacity=".75"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="112" y="128" font-size="28" font-weight="700" fill="#fb923c" letter-spacing="4">VẸN TOÀN CÀ MAU</text>
+    <text x="112" y="845" font-size="64" font-weight="900" fill="#ffffff">Hàng rào mái che</text>
+    <text x="112" y="900" font-size="30" fill="#dbe7f3">Mái che và hàng rào phía trước</text>
+    <text x="112" y="944" font-size="24" fill="#fed7aa">Hình ảnh minh họa</text>
+  </g>
+</svg>
