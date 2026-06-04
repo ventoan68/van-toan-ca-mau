@@ -95,7 +95,7 @@ Giao diện admin đã chuẩn bị các vùng thêm/sửa/xóa sản phẩm, t�
 
 ## J. Thay ảnh stock bằng ảnh công trình thật
 
-Hiện môi trường tải ảnh từ Pexels/Unsplash bị chặn nên website dùng placeholder SVG. Khi có ảnh thật:
+Hiện môi trường tải ảnh binary từ Pexels/Unsplash bị chặn nên website dùng 20 SVG minh họa rõ nét trong `assets/images/stock/` và giữ `assets/images/placeholders/` làm dự phòng. Khi có ảnh thật:
 
 1. Tối ưu ảnh sang WebP hoặc JPG nhẹ.
 2. Lưu vào `assets/uploads/` hoặc upload qua dashboard.
@@ -133,5 +133,5 @@ Có thể chỉnh trong dashboard hoặc sửa trực tiếp file JSON khi chưa
 ## Giới hạn hiện tại
 
 - Chưa có ảnh thật của đơn vị; toàn bộ ảnh công trình hiện là “Hình ảnh minh họa”.
-- Tải trực tiếp ảnh Pexels/Unsplash từ shell bị chặn bởi proxy, vì vậy dùng placeholder SVG và ghi rõ trong `IMAGE_SOURCES.md`.
+- Tải trực tiếp ảnh Pexels/Unsplash từ shell bị chặn bởi proxy, vì vậy website ưu tiên 20 ảnh SVG minh họa trong `assets/images/stock/`, giữ placeholder SVG làm dự phòng và ghi rõ trong `IMAGE_SOURCES.md`.
 - Skeleton backend đã chuẩn bị endpoint chính, nhưng cần kiểm thử production trên Cloudflare Pages trước khi sử dụng thật.
