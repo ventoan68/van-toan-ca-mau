@@ -1,6 +1,7 @@
 let siteData = null;
 let currentEdit = null;
 let quotes = [];
+const selectedQuoteIds = new Set();
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -12,6 +13,7 @@ const MAX_UPLOAD_SIZE = 1024 * 1024;
 const PLACEHOLDER_IMAGE = 'assets/images/placeholders/blueprint.svg';
 const isGitHubUpload = (url) => String(url || '').startsWith('https://raw.githubusercontent.com/') && String(url).includes('/assets/uploads/');
 const imageFallback = (img) => { if (!img.dataset.fallbackApplied) { img.dataset.fallbackApplied = '1'; img.src = PLACEHOLDER_IMAGE; } };
+const safe = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
 
 function showStatus(message, type = 'info') {
   statusBox.textContent = message;
@@ -299,6 +301,50 @@ async function loadQuotes() {
   const filter = $('[data-quote-filter]')?.value || '';
   const data = await api(`/api/admin/quotes${filter ? `?status=${encodeURIComponent(filter)}` : ''}`);
   quotes = data.quotes || [];
+  const visibleIds = new Set(quotes.map((quote) => String(quote.id)));
+  [...selectedQuoteIds].forEach((id) => { if (!visibleIds.has(id)) selectedQuoteIds.delete(id); });
+  updateQuoteBulkControls();
+}
+
+function updateQuoteBulkControls() {
+  const selectAll = $('[data-quote-select-all]');
+  const deleteSelected = $('[data-delete-selected-quotes]');
+  if (!selectAll || !deleteSelected) return;
+  const visibleIds = quotes.map((quote) => String(quote.id));
+  const selectedVisibleCount = visibleIds.filter((id) => selectedQuoteIds.has(id)).length;
+  selectAll.checked = Boolean(visibleIds.length && selectedVisibleCount === visibleIds.length);
+  selectAll.indeterminate = Boolean(selectedVisibleCount && selectedVisibleCount < visibleIds.length);
+  deleteSelected.disabled = selectedVisibleCount === 0;
+  deleteSelected.textContent = selectedVisibleCount ? `Xóa ${selectedVisibleCount} yêu cầu đã chọn` : 'Xóa các yêu cầu đã chọn';
+}
+
+async function deleteQuote(id, { skipConfirm = false } = {}) {
+  if (!skipConfirm && !confirm('Bạn có chắc chắn muốn xóa yêu cầu báo giá này? Thao tác này không thể hoàn tác.')) return false;
+  await api(`/api/admin/quotes/${id}`, { method: 'DELETE' });
+  selectedQuoteIds.delete(String(id));
+  await loadQuotes();
+  renderAdmin();
+  return true;
+}
+
+async function deleteSelectedQuotes() {
+  const ids = quotes.map((quote) => String(quote.id)).filter((id) => selectedQuoteIds.has(id));
+  if (!ids.length) return;
+  if (!confirm(`Bạn có chắc chắn muốn xóa ${ids.length} yêu cầu báo giá đã chọn? Thao tác này không thể hoàn tác.`)) return;
+  let success = 0;
+  const errors = [];
+  for (const id of ids) {
+    try {
+      await api(`/api/admin/quotes/${id}`, { method: 'DELETE' });
+      selectedQuoteIds.delete(id);
+      success += 1;
+    } catch (error) {
+      errors.push(`#${id}: ${error.message}`);
+    }
+  }
+  await loadQuotes();
+  renderAdmin();
+  showStatus(errors.length ? `Đã xóa ${success}/${ids.length} yêu cầu. Lỗi: ${errors.join('; ')}` : `Đã xóa ${success} yêu cầu đã chọn.`, errors.length ? 'error' : 'success');
 }
 
 function renderQuotes() {
@@ -307,10 +353,18 @@ function renderQuotes() {
   wrap.innerHTML = '';
   if (!quotes.length) {
     wrap.innerHTML = '<p class="empty">Chưa có yêu cầu báo giá.</p>';
+    updateQuoteBulkControls();
     return;
   }
   quotes.forEach((quote) => {
+    const id = String(quote.id);
     const node = tpl.content.cloneNode(true);
+    const checkbox = node.querySelector('[data-select-quote]');
+    checkbox.checked = selectedQuoteIds.has(id);
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) selectedQuoteIds.add(id); else selectedQuoteIds.delete(id);
+      updateQuoteBulkControls();
+    });
     node.querySelector('b').textContent = `${quote.customer_name} • ${quote.phone}`;
     node.querySelector('.quote-head span').textContent = `${quote.status} • ${new Date(quote.created_at).toLocaleString('vi-VN')}`;
     node.querySelector('p').textContent = `${quote.need} tại ${quote.area}. ${quote.message || ''}`;
@@ -325,8 +379,65 @@ function renderQuotes() {
       renderAdmin();
       showStatus('Đã cập nhật yêu cầu báo giá.', 'success');
     });
+    node.querySelector('[data-delete-quote]').addEventListener('click', async () => {
+      try {
+        const deleted = await deleteQuote(quote.id);
+        if (deleted) showStatus('Đã xóa yêu cầu báo giá.', 'success');
+      } catch (error) {
+        showStatus(error.message || 'Không thể xóa yêu cầu báo giá.', 'error');
+      }
+    });
     wrap.appendChild(node);
   });
+  updateQuoteBulkControls();
+}
+
+
+function seedPreviewItems(preview) {
+  const items = [];
+  if (preview?.brand?.heroImage) items.push({ title: 'Hero', image: preview.brand.heroImage, count: 1 });
+  (preview?.products || []).forEach((item) => items.push({ title: item.name, image: item.cover, count: item.images?.length || 0 }));
+  (preview?.projects || []).forEach((item) => items.push({ title: item.name, image: item.cover, count: item.images?.length || 0 }));
+  return items;
+}
+
+async function openSeedPreview() {
+  const modal = $('[data-seed-modal]');
+  const grid = $('[data-seed-preview-grid]');
+  const status = $('[data-seed-status]');
+  grid.innerHTML = '<p class="empty">Đang tải bản xem trước...</p>';
+  status.textContent = '';
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  try {
+    const data = await api('/api/admin/site/seed-images');
+    grid.innerHTML = seedPreviewItems(data.preview).map((item) => `
+      <article class="seed-card"><img src="${safe(item.image || PLACEHOLDER_IMAGE)}" alt="${safe(item.title)}" onerror="this.src='${PLACEHOLDER_IMAGE}'"><b>${safe(item.title)}</b><span>${item.count} ảnh</span></article>`).join('');
+  } catch (error) {
+    grid.innerHTML = '';
+    status.textContent = error.message || 'Không thể tải bản xem trước.';
+  }
+}
+
+function closeSeedPreview() {
+  const modal = $('[data-seed-modal]');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+async function applySeedImages() {
+  if (!confirm('Bạn xác nhận chỉ cập nhật ảnh đại diện và gallery từ repository? Thao tác này không ghi đè số điện thoại, Zalo, địa chỉ hoặc khu vực phục vụ.')) return;
+  const status = $('[data-seed-status]');
+  status.textContent = 'Đang nạp bộ ảnh mẫu mới từ repository...';
+  try {
+    const data = await api('/api/admin/site/seed-images', { method: 'POST', body: '{}' });
+    siteData = data.site;
+    closeSeedPreview();
+    renderAdmin();
+    showStatus(data.message || 'Đã nạp bộ ảnh mẫu mới từ repository.', 'success');
+  } catch (error) {
+    status.textContent = error.message || 'Không thể nạp bộ ảnh mẫu.';
+  }
 }
 
 $('[data-toggle-password]').addEventListener('click', (event) => {
@@ -353,5 +464,13 @@ $$('[data-editor-close]').forEach((button) => button.addEventListener('click', c
 $('[data-editor-form]').addEventListener('submit', editorSubmit);
 $('[data-image-manager]').addEventListener('click', imageManagerClick);
 $('[data-editor-form] [name="gallery"]').addEventListener('change', (event) => previewSelectedFiles(event.currentTarget));
-$('[data-quote-filter]').addEventListener('change', async () => { await loadQuotes(); renderQuotes(); });
+$('[data-quote-filter]').addEventListener('change', async () => { selectedQuoteIds.clear(); await loadQuotes(); renderQuotes(); });
+$('[data-quote-select-all]').addEventListener('change', (event) => {
+  quotes.forEach((quote) => { if (event.currentTarget.checked) selectedQuoteIds.add(String(quote.id)); else selectedQuoteIds.delete(String(quote.id)); });
+  renderQuotes();
+});
+$('[data-delete-selected-quotes]').addEventListener('click', deleteSelectedQuotes);
+$('[data-seed-preview]').addEventListener('click', openSeedPreview);
+$$('[data-seed-close]').forEach((button) => button.addEventListener('click', closeSeedPreview));
+$('[data-seed-apply]').addEventListener('click', applySeedImages);
 checkSession();
