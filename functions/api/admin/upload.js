@@ -1,5 +1,60 @@
-const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8'}});const allowed=new Set(['image/jpeg','image/png','image/webp']);const enc=new TextEncoder();
-async function hmac(secret,value){const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const sig=await crypto.subtle.sign('HMAC',key,enc.encode(value));return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/,'');}
-async function authed(request,env){const raw=request.headers.get('cookie')?.match(/vt_session=([^;]+)/)?.[1];if(!raw||!env.SESSION_SECRET)return false;const [payload,sig]=raw.split('.');if(await hmac(env.SESSION_SECRET,payload)!==sig)return false;try{return JSON.parse(atob(payload)).exp>Date.now()/1000}catch{return false}}
-function clean(name){return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,90)}
-export async function onRequestPost({request,env}){if(!await authed(request,env))return json({error:'Chưa đăng nhập'},401);const form=await request.formData();const file=form.get('file');if(!file||!allowed.has(file.type))return json({error:'Chỉ nhận JPG, JPEG, PNG hoặc WebP'},400);if(file.size>5*1024*1024)return json({error:'Ảnh vượt quá 5MB'},400);if(!env.GITHUB_TOKEN)return json({error:'Chưa cấu hình GitHub token'},503);const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';const name=`${Date.now()}-${clean(file.name).replace(/\.[^.]+$/,'')}.${ext}`;const bytes=new Uint8Array(await file.arrayBuffer());let binary='';bytes.forEach(b=>binary+=String.fromCharCode(b));const res=await fetch(`https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/assets/uploads/${name}`,{method:'PUT',headers:{authorization:`Bearer ${env.GITHUB_TOKEN}`,'user-agent':'ven-toan-ca-mau-admin','content-type':'application/json'},body:JSON.stringify({message:'Upload anh website',content:btoa(binary),branch:env.GITHUB_BRANCH||'main'})});if(!res.ok)return json({error:'Không thể upload ảnh'},500);return json({ok:true,path:`assets/uploads/${name}`});}
+import { requireAdmin } from '../../_shared/auth.js';
+import { json } from '../../_shared/response.js';
+import { cleanText, normalizeUploadName } from '../../_shared/sanitize.js';
+
+const ALLOWED = new Map([
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+]);
+const MAX_SIZE = 5 * 1024 * 1024;
+
+function makeKey(file) {
+  const ext = ALLOWED.get(file.type);
+  const base = normalizeUploadName(file.name).replace(/\.[^.]+$/, '');
+  const rand = crypto.randomUUID().slice(0, 8);
+  return `uploads/${new Date().toISOString().slice(0, 10)}/${Date.now()}-${rand}-${base}.${ext}`;
+}
+
+export async function onRequestPost({ request, env }) {
+  const auth = await requireAdmin(request, env);
+  if (auth.response) return auth.response;
+  try {
+    const form = await request.formData();
+    const files = form.getAll('files').length ? form.getAll('files') : [form.get('file')].filter(Boolean);
+    const uploaded = [];
+
+    for (const file of files) {
+      if (!file || typeof file.arrayBuffer !== 'function') return json({ error: 'Không tìm thấy file ảnh' }, 400);
+      if (!ALLOWED.has(file.type)) return json({ error: 'Chỉ nhận JPG, JPEG, PNG hoặc WebP' }, 400);
+      if (file.size > MAX_SIZE) return json({ error: 'Mỗi ảnh không được vượt quá 5MB' }, 400);
+      const key = makeKey(file);
+      await env.IMAGES.put(key, await file.arrayBuffer(), {
+        httpMetadata: { contentType: file.type, cacheControl: 'public, max-age=31536000, immutable' },
+        customMetadata: { originalName: cleanText(file.name, 120) },
+      });
+      uploaded.push({ key, url: `/media/${key}`, name: file.name, size: file.size, type: file.type });
+    }
+
+    return json({ ok: true, files: uploaded });
+  } catch (error) {
+    console.error('upload', error);
+    return json({ error: 'Không thể tải ảnh lên' }, 500);
+  }
+}
+
+export async function onRequestDelete({ request, env }) {
+  const auth = await requireAdmin(request, env);
+  if (auth.response) return auth.response;
+  try {
+    const body = await request.json();
+    const key = cleanText(body.key ?? String(body.url ?? '').replace(/^\/media\//, ''), 300);
+    if (!key || key.includes('..') || key.startsWith('/') || !key.startsWith('uploads/')) {
+      return json({ error: 'Đường dẫn ảnh không hợp lệ' }, 400);
+    }
+    await env.IMAGES.delete(key);
+    return json({ ok: true });
+  } catch {
+    return json({ error: 'Không thể xóa ảnh' }, 500);
+  }
+}

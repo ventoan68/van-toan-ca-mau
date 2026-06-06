@@ -1,29 +1,320 @@
-const STORAGE_KEY='vtcm_site_draft_v1';
-let siteData=null,currentEdit=null;
-const $=s=>document.querySelector(s);
-const login=$('[data-login]'),dash=$('[data-dashboard]');
-const slug=()=>`local-${Date.now()}`;
-const readDraft=()=>{const raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):null};
-const saveDraft=(msg='Đã lưu bản nháp. Mở trang công khai trong cùng trình duyệt để xem thay đổi.')=>{localStorage.setItem(STORAGE_KEY,JSON.stringify(siteData));renderAdmin();showStatus(msg)};
-const showStatus=msg=>{document.querySelectorAll('.form-status').forEach(el=>{el.textContent=msg;});};
-const fileToDataUrl=file=>new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});
-function getPath(obj,path){return path.split('.').reduce((a,k)=>a?.[k],obj)}
-function setPath(obj,path,val){const parts=path.split('.');let cur=obj;while(parts.length>1){cur=cur[parts.shift()]}cur[parts[0]]=val}
-function itemName(type){return type==='products'?'sản phẩm':type==='projects'?'công trình':'bài viết'}
-function itemDefaults(type){if(type==='posts')return{id:slug(),title:'Bài viết mới',date:new Date().toISOString().slice(0,10),description:'Mô tả ngắn',content:'Nội dung bài viết',image:'assets/images/stock/stock-blueprint.svg'};return{id:slug(),name:type==='products'?'Sản phẩm mới':'Công trình mới',category:siteData.categories?.[0]||'Đang cập nhật',group:'Công trình',area:'Cà Mau',description:'Mô tả ngắn',cover:'assets/images/stock/stock-blueprint.svg',images:['assets/images/stock/stock-blueprint.svg'],note:''}}
-$('[data-toggle-password]').addEventListener('click',e=>{const i=e.currentTarget.parentElement.querySelector('input');i.type=i.type==='password'?'text':'password';e.currentTarget.textContent=i.type==='password'?'Hiện':'Ẩn'});
-$('#login-form').addEventListener('submit',e=>{e.preventDefault();login.classList.add('hidden');dash.classList.remove('hidden');loadData();});
-$('[data-logout]').addEventListener('click',()=>{dash.classList.add('hidden');login.classList.remove('hidden')});
-document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));$('#'+b.dataset.tab).classList.add('active');$('[data-title]').textContent=b.textContent;}));
-async function loadData(){const r=await fetch('data/site.json');siteData=await r.json();const draft=readDraft();if(draft)siteData=draft;renderAdmin();if(draft)showStatus('Đang dùng bản nháp đã lưu trong trình duyệt này.');}
-function renderAdmin(){ $('[data-count-products]').textContent=siteData.products.length;$('[data-count-projects]').textContent=siteData.projects.length;$('[data-count-posts]').textContent=siteData.posts.length;renderList('[data-list-products]',siteData.products,'category','products');renderList('[data-list-projects]',siteData.projects,'group','projects');renderList('[data-list-posts]',siteData.posts,'date','posts');fillSiteForm();}
-function renderList(sel,items,meta,type){const tpl=$('#item-template');const wrap=$(sel);wrap.innerHTML='';items.forEach((item,index)=>{const node=tpl.content.cloneNode(true);const img=node.querySelector('img');img.src=item.cover||item.image;img.alt=item.name||item.title;node.querySelector('b').textContent=item.name||item.title;node.querySelector('p').textContent=item.description;node.querySelector('small').textContent=item[meta]||'';const buttons=node.querySelectorAll('button');buttons[0].addEventListener('click',()=>openEditor(type,index));buttons[1].addEventListener('click',()=>pickImages(async files=>{if(!files[0])return;const url=await fileToDataUrl(files[0]);if(type==='posts')item.image=url;else{item.cover=url;item.images=[url,...(item.images||[]).filter(x=>x!==url)]}saveDraft('Đã đổi ảnh đại diện. Trang công khai sẽ đọc ảnh này trong cùng trình duyệt.')}));buttons[2].addEventListener('click',()=>pickImages(async files=>{if(type==='posts'){alert('Bài viết chỉ dùng 1 ảnh đại diện. Hãy bấm Chọn ảnh đại diện.');return;}const urls=await Promise.all(files.map(fileToDataUrl));item.images=[...(item.images||[]),...urls];if(!item.cover)item.cover=urls[0];saveDraft(`Đã tải ${urls.length} ảnh vào bộ ảnh.`)}));buttons[3].addEventListener('click',()=>{if(confirm(`Xóa ${itemName(type)} này khỏi bản nháp?`)){items.splice(index,1);saveDraft('Đã xóa khỏi bản nháp.')}});wrap.appendChild(node);});}
-function fillSiteForm(){document.querySelectorAll('[data-site-form] [name]').forEach(i=>i.value=getPath(siteData,i.name)||'')}
-$('[data-site-form]').addEventListener('submit',e=>{e.preventDefault();document.querySelectorAll('[data-site-form] [name]').forEach(i=>setPath(siteData,i.name,i.value));saveDraft('Đã lưu thông tin website vào bản nháp local.');});
-document.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{const type=b.dataset.add+'s';siteData[type].unshift(itemDefaults(type));saveDraft(`Đã thêm ${itemName(type)} mới. Bấm Sửa để nhập nội dung và ảnh.`);openEditor(type,0)}));
-$('[data-reset-draft]').addEventListener('click',()=>{if(confirm('Xóa toàn bộ bản nháp local và quay về data/site.json?')){localStorage.removeItem(STORAGE_KEY);location.reload();}});
-function pickImages(done){const input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/webp,image/svg+xml';input.multiple=true;input.onchange=()=>done([...input.files]);input.click();}
-function openEditor(type,index){currentEdit={type,index};const item=siteData[type][index];const modal=$('[data-editor-modal]');modal.querySelector('h3').textContent=`Sửa ${itemName(type)}`;modal.querySelector('[name="title"]').value=item.name||item.title||'';modal.querySelector('[name="meta"]').value=item.category||item.group||item.date||'';modal.querySelector('[name="description"]').value=item.description||'';modal.querySelector('[name="content"]').value=item.content||item.note||item.area||'';modal.classList.add('open');modal.setAttribute('aria-hidden','false');}
-$('[data-editor-close]').addEventListener('click',()=>closeEditor());
-$('[data-editor-form]').addEventListener('submit',async e=>{e.preventDefault();const {type,index}=currentEdit;const item=siteData[type][index];const fd=new FormData(e.currentTarget);if(type==='posts'){item.title=fd.get('title');item.date=fd.get('meta')||new Date().toISOString().slice(0,10);item.content=fd.get('content');}else{item.name=fd.get('title');type==='products'?item.category=fd.get('meta'):item.group=fd.get('meta');if(type==='projects')item.area=fd.get('content');else item.note=fd.get('content');}item.description=fd.get('description');const cover=e.currentTarget.cover.files[0];if(cover){const url=await fileToDataUrl(cover);if(type==='posts')item.image=url;else{item.cover=url;item.images=[url,...(item.images||[]).filter(x=>x!==url)]}}const gallery=[...e.currentTarget.gallery.files];if(gallery.length&&type!=='posts'){const urls=await Promise.all(gallery.map(fileToDataUrl));item.images=[...(item.images||[]),...urls];if(!item.cover)item.cover=urls[0];}closeEditor();saveDraft('Đã lưu nội dung và hình ảnh vào bản nháp local.');});
-function closeEditor(){const modal=$('[data-editor-modal]');modal.classList.remove('open');modal.setAttribute('aria-hidden','true');$('[data-editor-form]').reset();}
+let siteData = null;
+let currentEdit = null;
+let quotes = [];
+
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
+const login = $('[data-login]');
+const dash = $('[data-dashboard]');
+const statusBox = $('[data-global-status]');
+const slug = () => `item-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+
+function showStatus(message, type = 'info') {
+  statusBox.textContent = message;
+  statusBox.dataset.type = type;
+  $$('.form-status').forEach((el) => { if (!el.matches('[data-login-status]')) el.textContent = message; });
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(path, {
+    headers: { accept: 'application/json', ...(options.body instanceof FormData ? {} : { 'content-type': 'application/json' }), ...options.headers },
+    ...options,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Yêu cầu thất bại');
+  return data;
+}
+
+function getPath(obj, path) { return path.split('.').reduce((acc, key) => acc?.[key], obj); }
+function setPath(obj, path, value) { const parts = path.split('.'); let cur = obj; while (parts.length > 1) cur = cur[parts.shift()]; cur[parts[0]] = value; }
+function itemName(type) { return type === 'products' ? 'sản phẩm' : type === 'projects' ? 'công trình' : 'bài viết'; }
+function itemDefaults(type) {
+  if (type === 'posts') return { id: slug(), title: 'Bài viết mới', date: new Date().toISOString().slice(0, 10), description: 'Mô tả ngắn', content: 'Nội dung bài viết', image: 'assets/images/stock/stock-blueprint.svg' };
+  return { id: slug(), name: type === 'products' ? 'Sản phẩm mới' : 'Công trình mới', category: siteData.categories?.[0] || 'Đang cập nhật', group: 'Hình ảnh minh họa', area: 'Cà Mau', description: 'Mô tả ngắn', cover: 'assets/images/stock/stock-blueprint.svg', images: ['assets/images/stock/stock-blueprint.svg'], note: 'Hình ảnh minh họa' };
+}
+
+async function checkSession() {
+  try {
+    await api('/api/auth/me');
+    login.classList.add('hidden');
+    dash.classList.remove('hidden');
+    await loadData();
+  } catch {
+    login.classList.remove('hidden');
+    dash.classList.add('hidden');
+  }
+}
+
+async function loginSubmit(event) {
+  event.preventDefault();
+  const status = $('[data-login-status]');
+  status.textContent = 'Đang đăng nhập...';
+  try {
+    await api('/api/auth/login', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget).entries())) });
+    login.classList.add('hidden');
+    dash.classList.remove('hidden');
+    await loadData();
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+
+async function logout() {
+  await api('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => {});
+  dash.classList.add('hidden');
+  login.classList.remove('hidden');
+}
+
+async function loadData() {
+  siteData = await api('/api/admin/site');
+  await loadQuotes();
+  renderAdmin();
+  showStatus('Đã tải dữ liệu production từ D1.', 'success');
+}
+
+async function saveSite(message = 'Đã lưu nội dung website vào D1.') {
+  const data = await api('/api/admin/site', { method: 'PUT', body: JSON.stringify(siteData) });
+  siteData = data.site;
+  renderAdmin();
+  showStatus(message, 'success');
+}
+
+function renderAdmin() {
+  $('[data-count-products]').textContent = siteData.products?.length || 0;
+  $('[data-count-projects]').textContent = siteData.projects?.length || 0;
+  $('[data-count-posts]').textContent = siteData.posts?.length || 0;
+  $('[data-count-quotes]').textContent = quotes.filter((quote) => quote.status === 'new').length;
+  renderList('[data-list-products]', siteData.products || [], 'category', 'products');
+  renderList('[data-list-projects]', siteData.projects || [], 'group', 'projects');
+  renderList('[data-list-posts]', siteData.posts || [], 'date', 'posts');
+  fillSiteForm();
+  renderQuotes();
+}
+
+function renderList(selector, items, meta, type) {
+  const tpl = $('#item-template');
+  const wrap = $(selector);
+  wrap.innerHTML = '';
+  items.forEach((item, index) => {
+    const node = tpl.content.cloneNode(true);
+    const img = node.querySelector('img');
+    img.src = item.cover || item.image;
+    img.alt = item.name || item.title;
+    node.querySelector('b').textContent = item.name || item.title;
+    node.querySelector('p').textContent = item.description || '';
+    node.querySelector('small').textContent = item[meta] || '';
+    node.querySelector('[data-edit]').addEventListener('click', () => openEditor(type, index));
+    node.querySelector('[data-delete]').addEventListener('click', async () => {
+      if (!confirm(`Xóa ${itemName(type)} này?`)) return;
+      items.splice(index, 1);
+      await saveSite(`Đã xóa ${itemName(type)}.`);
+    });
+    wrap.appendChild(node);
+  });
+}
+
+function fillSiteForm() {
+  $$('[data-site-form] [name]').forEach((input) => { input.value = getPath(siteData, input.name) || ''; });
+}
+
+function switchTab(button) {
+  $$('[data-tab]').forEach((item) => item.classList.remove('active'));
+  button.classList.add('active');
+  $$('.tab').forEach((tab) => tab.classList.remove('active'));
+  $(`#${button.dataset.tab}`).classList.add('active');
+  $('[data-title]').textContent = button.textContent;
+  $('[data-nav]').classList.remove('open');
+  if (button.dataset.tab === 'quotes') loadQuotes().then(renderQuotes).catch((error) => showStatus(error.message, 'error'));
+}
+
+function openEditor(type, index) {
+  currentEdit = { type, index };
+  const item = siteData[type][index];
+  const modal = $('[data-editor-modal]');
+  modal.querySelector('h3').textContent = `Sửa ${itemName(type)}`;
+  modal.querySelector('[name="title"]').value = item.name || item.title || '';
+  modal.querySelector('[name="meta"]').value = item.category || item.group || item.date || '';
+  modal.querySelector('[name="description"]').value = item.description || '';
+  modal.querySelector('[name="content"]').value = item.content || item.note || item.area || '';
+  modal.querySelector('[name="gallery"]').value = '';
+  $('[data-preview-grid]').innerHTML = '';
+  $('[data-upload-progress]').value = 0;
+  renderImageManager();
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeEditor() {
+  const modal = $('[data-editor-modal]');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  $('[data-editor-form]').reset();
+}
+
+function getCurrentImages(item, type) {
+  if (type === 'posts') return [item.image].filter(Boolean);
+  return item.images?.length ? item.images : [item.cover].filter(Boolean);
+}
+
+function setCurrentImages(item, type, images) {
+  if (type === 'posts') item.image = images[0] || 'assets/images/stock/stock-blueprint.svg';
+  else {
+    item.images = images;
+    item.cover = images.includes(item.cover) ? item.cover : images[0] || 'assets/images/stock/stock-blueprint.svg';
+  }
+}
+
+function renderImageManager() {
+  const { type, index } = currentEdit;
+  const item = siteData[type][index];
+  const images = getCurrentImages(item, type);
+  $('[data-image-manager]').innerHTML = images.map((src, imageIndex) => `
+    <article class="image-row" data-image-index="${imageIndex}">
+      <img src="${src}" alt="Ảnh ${imageIndex + 1}">
+      <span>${imageIndex === 0 || src === item.cover || src === item.image ? 'Ảnh đại diện' : 'Ảnh chi tiết'}</span>
+      <button type="button" data-cover>Đại diện</button>
+      <button type="button" data-up>↑</button>
+      <button type="button" data-down>↓</button>
+      <button type="button" data-remove>Xóa</button>
+    </article>`).join('');
+}
+
+async function uploadFiles(files) {
+  const progress = $('[data-upload-progress]');
+  const status = $('[data-upload-status]');
+  const uploaded = [];
+  let done = 0;
+  for (const file of files) {
+    const form = new FormData();
+    form.append('file', file);
+    status.textContent = `Đang tải ${file.name}...`;
+    const result = await api('/api/admin/upload', { method: 'POST', body: form });
+    uploaded.push(...result.files.map((entry) => entry.url));
+    done += 1;
+    progress.value = Math.round((done / files.length) * 100);
+  }
+  status.textContent = `Đã tải ${uploaded.length} ảnh lên R2.`;
+  return uploaded;
+}
+
+function previewSelectedFiles(input) {
+  const wrap = $('[data-preview-grid]');
+  wrap.innerHTML = '';
+  [...input.files].forEach((file) => {
+    const url = URL.createObjectURL(file);
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = file.name;
+    img.onload = () => URL.revokeObjectURL(url);
+    wrap.appendChild(img);
+  });
+}
+
+async function editorSubmit(event) {
+  event.preventDefault();
+  const { type, index } = currentEdit;
+  const item = siteData[type][index];
+  const fd = new FormData(event.currentTarget);
+  if (type === 'posts') {
+    item.title = fd.get('title');
+    item.date = fd.get('meta') || new Date().toISOString().slice(0, 10);
+    item.content = fd.get('content');
+  } else {
+    item.name = fd.get('title');
+    if (type === 'products') item.category = fd.get('meta');
+    if (type === 'projects') item.group = fd.get('meta');
+    if (type === 'projects') item.area = fd.get('content'); else item.note = fd.get('content');
+  }
+  item.description = fd.get('description');
+  const files = [...event.currentTarget.gallery.files];
+  if (files.length) {
+    const urls = await uploadFiles(files);
+    const images = getCurrentImages(item, type);
+    setCurrentImages(item, type, [...images, ...urls]);
+  }
+  closeEditor();
+  await saveSite(`Đã lưu ${itemName(type)} vào D1.`);
+}
+
+async function imageManagerClick(event) {
+  const row = event.target.closest('[data-image-index]');
+  if (!row || !currentEdit) return;
+  const imageIndex = Number(row.dataset.imageIndex);
+  const { type, index } = currentEdit;
+  const item = siteData[type][index];
+  const images = getCurrentImages(item, type);
+  if (event.target.matches('[data-cover]')) {
+    if (type === 'posts') item.image = images[imageIndex]; else item.cover = images[imageIndex];
+  }
+  if (event.target.matches('[data-up]') && imageIndex > 0) [images[imageIndex - 1], images[imageIndex]] = [images[imageIndex], images[imageIndex - 1]];
+  if (event.target.matches('[data-down]') && imageIndex < images.length - 1) [images[imageIndex + 1], images[imageIndex]] = [images[imageIndex], images[imageIndex + 1]];
+  if (event.target.matches('[data-remove]') && confirm('Xóa riêng ảnh này?')) {
+    const [removed] = images.splice(imageIndex, 1);
+    if (removed?.startsWith('/media/uploads/')) {
+      await api('/api/admin/upload', { method: 'DELETE', body: JSON.stringify({ url: removed }) }).catch(() => {});
+    }
+  }
+  setCurrentImages(item, type, images);
+  renderImageManager();
+}
+
+async function loadQuotes() {
+  const filter = $('[data-quote-filter]')?.value || '';
+  const data = await api(`/api/admin/quotes${filter ? `?status=${encodeURIComponent(filter)}` : ''}`);
+  quotes = data.quotes || [];
+}
+
+function renderQuotes() {
+  const wrap = $('[data-quotes-list]');
+  const tpl = $('#quote-template');
+  wrap.innerHTML = '';
+  if (!quotes.length) {
+    wrap.innerHTML = '<p class="empty">Chưa có yêu cầu báo giá.</p>';
+    return;
+  }
+  quotes.forEach((quote) => {
+    const node = tpl.content.cloneNode(true);
+    node.querySelector('b').textContent = `${quote.customer_name} • ${quote.phone}`;
+    node.querySelector('.quote-head span').textContent = `${quote.status} • ${new Date(quote.created_at).toLocaleString('vi-VN')}`;
+    node.querySelector('p').textContent = `${quote.need} tại ${quote.area}. ${quote.message || ''}`;
+    const actions = node.querySelector('.quote-actions');
+    actions.innerHTML = `<a href="tel:${quote.phone}">Gọi điện</a>${quote.zalo ? `<a href="https://zalo.me/${quote.zalo.replace(/\D/g, '')}" target="_blank" rel="noreferrer">Mở Zalo</a>` : ''}${quote.email ? `<a href="mailto:${quote.email}">Gửi email</a>` : ''}`;
+    node.querySelector('[name="status"]').value = quote.status;
+    node.querySelector('[name="admin_note"]').value = quote.admin_note || '';
+    node.querySelector('[data-save-quote]').addEventListener('click', async (event) => {
+      const card = event.currentTarget.closest('.quote-item');
+      await api(`/api/admin/quotes/${quote.id}`, { method: 'PATCH', body: JSON.stringify({ status: card.querySelector('[name="status"]').value, admin_note: card.querySelector('[name="admin_note"]').value }) });
+      await loadQuotes();
+      renderAdmin();
+      showStatus('Đã cập nhật yêu cầu báo giá.', 'success');
+    });
+    wrap.appendChild(node);
+  });
+}
+
+$('[data-toggle-password]').addEventListener('click', (event) => {
+  const input = event.currentTarget.parentElement.querySelector('input');
+  input.type = input.type === 'password' ? 'text' : 'password';
+  event.currentTarget.textContent = input.type === 'password' ? 'Hiện' : 'Ẩn';
+});
+$('#login-form').addEventListener('submit', loginSubmit);
+$('[data-logout]').addEventListener('click', logout);
+$('[data-sidebar-toggle]').addEventListener('click', () => $('[data-nav]').classList.toggle('open'));
+$$('[data-tab]').forEach((button) => button.addEventListener('click', () => switchTab(button)));
+$('[data-site-form]').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  $$('[data-site-form] [name]').forEach((input) => setPath(siteData, input.name, input.value));
+  await saveSite('Đã lưu thông tin website vào D1.');
+});
+$$('[data-add]').forEach((button) => button.addEventListener('click', async () => {
+  const type = `${button.dataset.add}s`;
+  siteData[type].unshift(itemDefaults(type));
+  await saveSite(`Đã thêm ${itemName(type)} mới.`);
+  openEditor(type, 0);
+}));
+$$('[data-editor-close]').forEach((button) => button.addEventListener('click', closeEditor));
+$('[data-editor-form]').addEventListener('submit', editorSubmit);
+$('[data-image-manager]').addEventListener('click', imageManagerClick);
+$('[data-editor-form] [name="gallery"]').addEventListener('change', (event) => previewSelectedFiles(event.currentTarget));
+$('[data-quote-filter]').addEventListener('change', async () => { await loadQuotes(); renderQuotes(); });
+checkSession();

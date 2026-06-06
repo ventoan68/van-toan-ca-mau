@@ -1,22 +1,182 @@
-const STORAGE_KEY='vtcm_site_draft_v1';
-const state={site:null,lightboxImages:[],lightboxIndex:0};
-const safe=(v)=>String(v??'').replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const readLocalDraft=()=>{const raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):null};
-async function loadSite(){try{const res=await fetch('data/site.json');state.site=readLocalDraft()||await res.json();renderSite(state.site);}catch(e){console.error('Không tải được dữ liệu website',e)}}
-function setText(sel,val){document.querySelectorAll(sel).forEach(el=>el.textContent=val)}
-function renderSite(site){setText('[data-brand-name]',site.brand.name);setText('[data-brand-tagline]',site.brand.tagline);setText('[data-hero-title]',site.brand.heroTitle);setText('[data-hero-description]',site.brand.heroDescription);const heroImage=document.querySelector('[data-hero-image]');if(heroImage&&site.brand.heroImage){heroImage.src=site.brand.heroImage;}const heroBg=document.querySelector('.hero-bg');if(heroBg&&site.brand.heroImage){heroBg.style.backgroundImage=`radial-gradient(circle at 20% 10%,rgba(249,115,22,.35),transparent 28%),linear-gradient(115deg,rgba(7,26,47,.95),rgba(7,26,47,.76)),url('${site.brand.heroImage}')`;}setText('[data-contact-phone]',site.contact.phone);setText('[data-contact-zalo]',site.contact.zalo);setText('[data-contact-address]',site.contact.address);setText('[data-contact-area]',site.contact.serviceArea);setText('[data-contact-hours]',site.contact.workingHours);document.querySelectorAll('[data-contact-email]').forEach(a=>{a.textContent=site.contact.email;a.href=`mailto:${site.contact.email}`});renderServices(site.services);renderFilters(site.categories);renderProducts(site.products);renderProjects(site.projects);renderPosts(site.posts)}
-function renderServices(items){document.querySelector('[data-services]').innerHTML=items.map(s=>`<article class="service-card"><img src="${safe(s.image)}" alt="${safe(s.title)} minh họa" loading="lazy"><span class="service-icon" aria-hidden="true">${safe(s.icon)}</span><h3>${safe(s.title)}</h3><p>${safe(s.description)}</p><div class="card-actions"><a class="btn btn-dark" href="#products">Xem chi tiết</a><a class="btn btn-primary" href="#quote">Báo giá</a></div></article>`).join('')}
-function renderFilters(categories){const wrap=document.querySelector('[data-filters]');wrap.innerHTML=['Tất cả',...categories].map((c,i)=>`<button type="button" class="${i===0?'active':''}" data-filter="${safe(c)}">${safe(c)}</button>`).join('');wrap.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;wrap.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderProducts(state.site.products,b.dataset.filter)})}
-function productCard(p,type='product'){const images=p.images?.length?p.images:[p.cover].filter(Boolean);return `<article class="${type}-card"><div class="media"><img src="${safe(p.cover)}" alt="${safe(p.name)}" loading="lazy"><span class="badge">${images.length} ảnh</span></div><div class="card-body"><span class="category">${safe(p.category||p.group)}</span><h3>${safe(p.name)}</h3><p>${safe(p.description)}</p>${p.note?`<span class="note">${safe(p.note)}</span>`:''}${p.area?`<p><b>Khu vực:</b> ${safe(p.area)}</p>`:''}<div class="card-actions"><button class="btn btn-dark" type="button" data-gallery="${encodeURIComponent(JSON.stringify(images))}" data-title="${safe(p.name)}">Xem bộ ảnh</button><a class="btn btn-primary" href="#quote">Yêu cầu báo giá</a></div></div></article>`}
-function renderProducts(items,filter='Tất cả'){const data=filter==='Tất cả'?items:items.filter(p=>p.category===filter);document.querySelector('[data-products]').innerHTML=data.map(p=>productCard(p,'product')).join('')}
-function renderProjects(items){document.querySelector('[data-projects]').innerHTML=items.map(p=>productCard(p,'project')).join('')}
-function renderPosts(items){document.querySelector('[data-posts]').innerHTML=items.map(p=>`<article class="post-card"><div class="media"><img src="${safe(p.image)}" alt="${safe(p.title)}" loading="lazy"></div><div class="card-body"><span class="category">${safe(new Date(p.date).toLocaleDateString('vi-VN'))}</span><h3>${safe(p.title)}</h3><p>${safe(p.description)}</p><details><summary class="btn btn-dark">Xem chi tiết</summary><p>${safe(p.content)}</p></details></div></article>`).join('')}
-function openLightbox(images,title){state.lightboxImages=images;state.lightboxIndex=0;document.querySelector('[data-lightbox]').classList.add('open');document.querySelector('[data-lightbox]').setAttribute('aria-hidden','false');updateLightbox(title);document.querySelector('.lightbox-close').focus()}
-function updateLightbox(title='Bộ ảnh'){const img=document.querySelector('[data-lightbox-image]');img.src=state.lightboxImages[state.lightboxIndex];img.alt=`${title} - ảnh ${state.lightboxIndex+1}`;document.querySelector('[data-lightbox-caption]').textContent=`${title} • Ảnh ${state.lightboxIndex+1}/${state.lightboxImages.length}`;document.querySelector('[data-lightbox-thumbs]').innerHTML=state.lightboxImages.map((src,i)=>`<button type="button" class="${i===state.lightboxIndex?'active':''}" data-thumb="${i}" aria-label="Xem ảnh ${i+1}"><img src="${safe(src)}" alt="Thumbnail ${i+1}"></button>`).join('')}
-function closeLightbox(){document.querySelector('[data-lightbox]').classList.remove('open');document.querySelector('[data-lightbox]').setAttribute('aria-hidden','true')}
-function moveLightbox(step){state.lightboxIndex=(state.lightboxIndex+step+state.lightboxImages.length)%state.lightboxImages.length;updateLightbox(document.querySelector('[data-lightbox-caption]').textContent.split(' • ')[0])}
-document.addEventListener('click',e=>{const gallery=e.target.closest('[data-gallery]');if(gallery){openLightbox(JSON.parse(decodeURIComponent(gallery.dataset.gallery)),gallery.dataset.title)}const thumb=e.target.closest('[data-thumb]');if(thumb){state.lightboxIndex=Number(thumb.dataset.thumb);updateLightbox(document.querySelector('[data-lightbox-caption]').textContent.split(' • ')[0])}});
-document.querySelector('.menu-toggle').addEventListener('click',e=>{const nav=document.querySelector('#primary-nav');const open=nav.classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',open)});document.querySelectorAll('#primary-nav a').forEach(a=>a.addEventListener('click',()=>document.querySelector('#primary-nav').classList.remove('open')));
-document.querySelector('.lightbox-close').addEventListener('click',closeLightbox);document.querySelector('.lightbox-prev').addEventListener('click',()=>moveLightbox(-1));document.querySelector('.lightbox-next').addEventListener('click',()=>moveLightbox(1));document.querySelector('[data-lightbox]').addEventListener('click',e=>{if(e.target.matches('[data-lightbox]'))closeLightbox()});document.addEventListener('keydown',e=>{if(!document.querySelector('[data-lightbox]').classList.contains('open'))return;if(e.key==='Escape')closeLightbox();if(e.key==='ArrowLeft')moveLightbox(-1);if(e.key==='ArrowRight')moveLightbox(1)});
-document.querySelector('.quote-form').addEventListener('submit',e=>{e.preventDefault();e.currentTarget.querySelector('.form-note').textContent='Form đang ở chế độ giao diện mẫu. Vui lòng liên hệ qua điện thoại, Zalo hoặc email sau khi thông tin được cập nhật.'});
+const state = { site: null, lightboxImages: [], lightboxIndex: 0 };
+const safe = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+
+async function loadSite() {
+  try {
+    const res = await fetch('/api/site', { headers: { accept: 'application/json' } });
+    if (!res.ok) throw new Error('API site unavailable');
+    state.site = await res.json();
+  } catch (error) {
+    console.warn('Không tải được /api/site, dùng data/site.json làm fallback tĩnh.', error);
+    const fallback = await fetch('data/site.json');
+    state.site = await fallback.json();
+  }
+  renderSite(state.site);
+}
+
+function setText(selector, value) {
+  document.querySelectorAll(selector).forEach((element) => { element.textContent = value; });
+}
+
+function renderSite(site) {
+  setText('[data-brand-name]', site.brand.name);
+  setText('[data-brand-tagline]', site.brand.tagline);
+  setText('[data-hero-title]', site.brand.heroTitle);
+  setText('[data-hero-description]', site.brand.heroDescription);
+  const heroImage = document.querySelector('[data-hero-image]');
+  if (heroImage && site.brand.heroImage) heroImage.src = site.brand.heroImage;
+  const heroBg = document.querySelector('.hero-bg');
+  if (heroBg && site.brand.heroImage) {
+    heroBg.style.backgroundImage = `radial-gradient(circle at 20% 10%,rgba(249,115,22,.35),transparent 28%),linear-gradient(115deg,rgba(7,26,47,.95),rgba(7,26,47,.76)),url('${site.brand.heroImage}')`;
+  }
+  setText('[data-contact-phone]', site.contact.phone);
+  setText('[data-contact-zalo]', site.contact.zalo);
+  setText('[data-contact-address]', site.contact.address);
+  setText('[data-contact-area]', site.contact.serviceArea);
+  setText('[data-contact-hours]', site.contact.workingHours);
+  document.querySelectorAll('[data-contact-email]').forEach((link) => {
+    link.textContent = site.contact.email;
+    link.href = `mailto:${site.contact.email}`;
+  });
+  renderServices(site.services || []);
+  renderFilters(site.categories || []);
+  renderProducts(site.products || []);
+  renderProjects(site.projects || []);
+  renderPosts(site.posts || []);
+}
+
+function renderServices(items) {
+  document.querySelector('[data-services]').innerHTML = items.map((service) => `
+    <article class="service-card">
+      <img src="${safe(service.image)}" alt="${safe(service.title)} minh họa" loading="lazy">
+      <span class="service-icon" aria-hidden="true">${safe(service.icon)}</span>
+      <h3>${safe(service.title)}</h3>
+      <p>${safe(service.description)}</p>
+      <div class="card-actions"><a class="btn btn-dark" href="#products">Xem chi tiết</a><a class="btn btn-primary" href="#quote">Báo giá</a></div>
+    </article>`).join('');
+}
+
+function renderFilters(categories) {
+  const wrap = document.querySelector('[data-filters]');
+  wrap.innerHTML = ['Tất cả', ...categories].map((category, index) => `<button type="button" class="${index === 0 ? 'active' : ''}" data-filter="${safe(category)}">${safe(category)}</button>`).join('');
+  wrap.onclick = (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    wrap.querySelectorAll('button').forEach((item) => item.classList.remove('active'));
+    button.classList.add('active');
+    renderProducts(state.site.products || [], button.dataset.filter);
+  };
+}
+
+function productCard(item, type = 'product') {
+  const images = item.images?.length ? item.images : [item.cover || item.image].filter(Boolean);
+  return `<article class="${type}-card">
+    <div class="media"><img src="${safe(item.cover || item.image)}" alt="${safe(item.name || item.title)}" loading="lazy"><span class="badge">${images.length} ảnh</span></div>
+    <div class="card-body"><span class="category">${safe(item.category || item.group || 'Hình ảnh minh họa')}</span><h3>${safe(item.name || item.title)}</h3><p>${safe(item.description)}</p>
+    ${item.note ? `<span class="note">${safe(item.note)}</span>` : ''}${item.area ? `<p><b>Khu vực:</b> ${safe(item.area)}</p>` : ''}
+    <div class="card-actions"><button class="btn btn-dark" type="button" data-gallery="${encodeURIComponent(JSON.stringify(images))}" data-title="${safe(item.name || item.title)}">Xem bộ ảnh</button><a class="btn btn-primary" href="#quote">Yêu cầu báo giá</a></div></div>
+  </article>`;
+}
+
+function renderProducts(items, filter = 'Tất cả') {
+  const data = filter === 'Tất cả' ? items : items.filter((product) => product.category === filter);
+  document.querySelector('[data-products]').innerHTML = data.map((product) => productCard(product, 'product')).join('');
+}
+
+function renderProjects(items) {
+  document.querySelector('[data-projects]').innerHTML = items.map((project) => productCard(project, 'project')).join('');
+}
+
+function renderPosts(items) {
+  document.querySelector('[data-posts]').innerHTML = items.map((post) => `
+    <article class="post-card"><div class="media"><img src="${safe(post.image)}" alt="${safe(post.title)}" loading="lazy"></div>
+      <div class="card-body"><span class="category">${safe(new Date(post.date).toLocaleDateString('vi-VN'))}</span><h3>${safe(post.title)}</h3><p>${safe(post.description)}</p><details><summary class="btn btn-dark">Xem chi tiết</summary><p>${safe(post.content)}</p></details></div>
+    </article>`).join('');
+}
+
+function openLightbox(images, title) {
+  state.lightboxImages = images;
+  state.lightboxIndex = 0;
+  document.querySelector('[data-lightbox]').classList.add('open');
+  document.querySelector('[data-lightbox]').setAttribute('aria-hidden', 'false');
+  updateLightbox(title);
+  document.querySelector('.lightbox-close').focus();
+}
+
+function updateLightbox(title = 'Bộ ảnh') {
+  const img = document.querySelector('[data-lightbox-image]');
+  img.src = state.lightboxImages[state.lightboxIndex];
+  img.alt = `${title} - ảnh ${state.lightboxIndex + 1}`;
+  document.querySelector('[data-lightbox-caption]').textContent = `${title} • Ảnh ${state.lightboxIndex + 1}/${state.lightboxImages.length} • Hình ảnh minh họa`;
+  document.querySelector('[data-lightbox-thumbs]').innerHTML = state.lightboxImages.map((src, index) => `<button type="button" class="${index === state.lightboxIndex ? 'active' : ''}" data-thumb="${index}" aria-label="Xem ảnh ${index + 1}"><img src="${safe(src)}" alt="Thumbnail ${index + 1}"></button>`).join('');
+}
+
+function closeLightbox() {
+  document.querySelector('[data-lightbox]').classList.remove('open');
+  document.querySelector('[data-lightbox]').setAttribute('aria-hidden', 'true');
+}
+
+function moveLightbox(step) {
+  state.lightboxIndex = (state.lightboxIndex + step + state.lightboxImages.length) % state.lightboxImages.length;
+  updateLightbox(document.querySelector('[data-lightbox-caption]').textContent.split(' • ')[0]);
+}
+
+async function submitQuote(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const note = form.querySelector('.form-note');
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Đang gửi...';
+  note.textContent = 'Đang gửi yêu cầu báo giá, vui lòng chờ...';
+  note.classList.remove('error', 'success');
+  const payload = Object.fromEntries(new FormData(form).entries());
+  try {
+    const res = await fetch('/api/quotes', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Không thể gửi yêu cầu.');
+    form.reset();
+    note.textContent = data.message || 'Đã gửi yêu cầu thành công. Vẹn Toàn Cà Mau sẽ liên hệ để trao đổi chi tiết.';
+    note.classList.add('success');
+  } catch (error) {
+    note.textContent = error.message || 'Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.';
+    note.classList.add('error');
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+document.addEventListener('click', (event) => {
+  const gallery = event.target.closest('[data-gallery]');
+  if (gallery) openLightbox(JSON.parse(decodeURIComponent(gallery.dataset.gallery)), gallery.dataset.title);
+  const thumb = event.target.closest('[data-thumb]');
+  if (thumb) {
+    state.lightboxIndex = Number(thumb.dataset.thumb);
+    updateLightbox(document.querySelector('[data-lightbox-caption]').textContent.split(' • ')[0]);
+  }
+});
+
+document.querySelector('.menu-toggle').addEventListener('click', (event) => {
+  const nav = document.querySelector('#primary-nav');
+  const open = nav.classList.toggle('open');
+  event.currentTarget.setAttribute('aria-expanded', open);
+});
+document.querySelectorAll('#primary-nav a').forEach((link) => link.addEventListener('click', () => document.querySelector('#primary-nav').classList.remove('open')));
+document.querySelector('.lightbox-close').addEventListener('click', closeLightbox);
+document.querySelector('.lightbox-prev').addEventListener('click', () => moveLightbox(-1));
+document.querySelector('.lightbox-next').addEventListener('click', () => moveLightbox(1));
+document.querySelector('[data-lightbox]').addEventListener('click', (event) => { if (event.target.matches('[data-lightbox]')) closeLightbox(); });
+document.addEventListener('keydown', (event) => {
+  if (!document.querySelector('[data-lightbox]').classList.contains('open')) return;
+  if (event.key === 'Escape') closeLightbox();
+  if (event.key === 'ArrowLeft') moveLightbox(-1);
+  if (event.key === 'ArrowRight') moveLightbox(1);
+});
+document.querySelector('.quote-form').addEventListener('submit', submitQuote);
 loadSite();
