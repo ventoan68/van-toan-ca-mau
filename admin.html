@@ -40,7 +40,7 @@
       <section class="workspace">
         <header>
           <div><p>Dashboard quản trị production</p><h2 data-title>Tổng quan</h2></div>
-          <span class="pill">Cloudflare Pages + D1 + R2</span>
+          <span class="pill">Cloudflare Pages + D1 + GitHub</span>
         </header>
         <div class="alert" data-global-status>Đang kiểm tra phiên đăng nhập...</div>
 
@@ -98,10 +98,10 @@
           <div class="guide">
             <h3>Hướng dẫn vận hành production</h3>
             <ol>
-              <li>Cấu hình bindings <b>DB</b> (D1) và <b>IMAGES</b> (R2) trong Cloudflare Pages.</li>
-              <li>Cấu hình secrets <b>ADMIN_USERNAME</b>, <b>ADMIN_PASSWORD_HASH</b>, <b>SESSION_SECRET</b>.</li>
+              <li>Cấu hình binding <b>DB</b> (D1) trong Cloudflare Pages; không cần R2 hoặc binding IMAGES.</li>
+              <li>Cấu hình secrets <b>ADMIN_USERNAME</b>, <b>ADMIN_PASSWORD_HASH</b>, <b>SESSION_SECRET</b>, <b>GITHUB_TOKEN</b>.</li>
               <li>Chạy migration <code>migrations/0001_init.sql</code> trước khi dùng admin.</li>
-              <li>Ảnh upload được lưu trong R2 và phục vụ qua đường dẫn <code>/media/uploads/...</code>.</li>
+              <li>Ảnh upload được commit vào <code>assets/uploads/</code> của GitHub và hiển thị bằng URL <code>raw.githubusercontent.com</code>.</li>
               <li>Ảnh stock chỉ ghi là “Hình ảnh minh họa”, không ghi là công trình thực tế khi chưa có ảnh thật.</li>
             </ol>
           </div>
@@ -119,9 +119,10 @@
       <label>Ghi chú / khu vực / nội dung<textarea name="content" rows="4" maxlength="3000"></textarea></label>
       <div class="upload-box">
         <label>Chọn nhiều ảnh<input name="gallery" type="file" accept="image/*" multiple></label>
+        <p class="hint" data-selected-count>Chưa chọn ảnh.</p>
         <div class="preview-grid" data-preview-grid></div>
         <progress value="0" max="100" data-upload-progress></progress>
-        <p class="hint" data-upload-status>Ảnh JPG, PNG, WebP tối đa 5MB/ảnh. Không dùng data URL trong production.</p>
+        <p class="hint" data-upload-status>Ảnh JPG, PNG, WebP tối đa 1 MB/ảnh. Có thể chọn nhiều ảnh, chọn ảnh đại diện, xóa riêng và sắp xếp ảnh.</p>
       </div>
       <div class="image-manager" data-image-manager></div>
       <div class="dialog-actions"><button class="secondary" type="button" data-editor-close>Hủy</button><button class="primary" type="submit">Lưu vào D1</button></div>

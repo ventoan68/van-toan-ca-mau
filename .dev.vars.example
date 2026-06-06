@@ -1,3 +1,7 @@
 ADMIN_USERNAME=ventoan
 ADMIN_PASSWORD_HASH=pbkdf2$sha256$210000$example-salt$example-hash
 SESSION_SECRET=change-this-long-random-secret-at-least-32-characters
+GITHUB_TOKEN=github_pat_example_do_not_commit_real_token
+GITHUB_OWNER=ventoan68
+GITHUB_REPO=van-toan-ca-mau
+GITHUB_BRANCH=main
