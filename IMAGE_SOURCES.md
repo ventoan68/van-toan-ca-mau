@@ -1,25 +1,32 @@
-# Nguồn hình ảnh
+# IMAGE_SOURCES
 
-Website hiện giữ SVG fallback trong `assets/images/stock/` và `assets/images/placeholders/` để tránh dùng ảnh không rõ giấy phép hoặc hotlink ảnh ngoài. Khi chưa có ảnh công trình thật của VẸN TOÀN CÀ MAU, toàn bộ ảnh stock/fallback phải được ghi là **“Hình ảnh minh họa”**.
+## Ảnh đã dùng trong repository
 
-## Nguồn hợp lệ đã tra cứu
+| File | Nhóm sản phẩm | Nguồn | Tác giả | Ghi chú |
+| --- | --- | --- | --- | --- |
+| `assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg` | Cửa nhôm Xingfa | Ảnh admin đã tải sẵn trong repository | Admin VẸN TOÀN CÀ MAU | Ảnh đã tồn tại trước trong repository; PR này không thêm file ảnh nhị phân mới và không hotlink. |
 
-Các nguồn dưới đây phù hợp để quản trị viên tải ảnh minh họa hợp lệ rồi upload qua dashboard production vào `assets/uploads/` của GitHub:
+## Ảnh đính kèm trong nhiệm vụ
 
-| Nguồn | URL | Gợi ý dùng | Ghi chú hiển thị |
-|---|---|---|---|
-| Unsplash | https://unsplash.com/s/photos/aluminum-windows | Cửa nhôm, vách kính, facade | Hình ảnh minh họa |
-| Unsplash | https://unsplash.com/s/photos/glass-doors | Cửa kính, cửa trượt, nội thất kính | Hình ảnh minh họa |
-| Unsplash | https://unsplash.com/s/photos/glass-window | Cửa sổ kính, mặt dựng kính | Hình ảnh minh họa |
-| Pexels | https://www.pexels.com/search/glass%20aluminum%20door/ | Cửa nhôm kính, showroom, vách kính | Hình ảnh minh họa |
-| Pexels | https://www.pexels.com/photo/glass-window-with-metal-frame-97510/ | Khung kim loại và kính | Hình ảnh minh họa |
-| Pexels | https://www.pexels.com/photo/aluminum-framed-glass-door-in-a-greenhouse-14455528/ | Cửa kính khung nhôm | Hình ảnh minh họa |
-| Pexels | https://www.pexels.com/photo/aluminum-and-glass-facade-system-of-building-9901861/ | Mặt dựng nhôm kính | Hình ảnh minh họa |
+Môi trường làm việc chỉ có thể truy cập trực tiếp một ảnh trùng với ảnh đính kèm đang nằm sẵn trong repository: `assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg`.
+Các ảnh đính kèm còn lại hiển thị trong nội dung yêu cầu nhưng không có đường dẫn file nhị phân trong filesystem, nên chưa thể tải/chuyển đổi/lưu vào repository một cách an toàn.
 
-## Quy tắc dùng ảnh
+Đánh giá trực quan từ các ảnh đính kèm và cách xử lý trong PR này:
 
-- Không dùng ảnh từ Google Images, Facebook, Pinterest hoặc nguồn không rõ giấy phép.
-- Không hotlink ảnh ngoài trong production; hãy tải ảnh hợp lệ rồi upload qua admin để lưu vào `assets/uploads/` của GitHub.
-- Không ghi “công trình thực tế” nếu ảnh không phải công trình thật do khách hàng/người dùng cung cấp.
-- Ảnh người dùng cung cấp nên được tối ưu về dung lượng trước khi upload.
-- API production chỉ nhận JPG/JPEG, PNG, WebP và giới hạn 1 MB/ảnh.
+- Ảnh cửa nhôm/kính có chữ hoặc logo của đơn vị khác: đã loại, không đưa vào seed.
+- Ảnh có watermark/tên doanh nghiệp khác: đã loại, không đưa vào seed.
+- Ảnh còn lại nhưng không có file nhị phân để xử lý: chưa đưa vào repository; cần admin tải lên thủ công qua trang quản trị hoặc cung cấp file gốc trong repo.
+- Không thêm ảnh WebP/JPG/PNG nhị phân mới trong PR này để tránh lỗi “Binary files are not supported” khi tạo PR; bộ seed chỉ tham chiếu ảnh JPG đã tồn tại sẵn.
+
+## Ảnh stock đã sử dụng
+
+Không có ảnh stock Pexels/Unsplash nào được tải về repository trong lần cập nhật này vì các endpoint tải ảnh bị chặn 403 trong môi trường hiện tại. Website vẫn giữ các fallback SVG hiện có và không hotlink ảnh ngoài.
+
+## Nguồn stock đề xuất cần tải thủ công nếu muốn bổ sung ảnh thật
+
+| Nhóm sản phẩm | URL trang nguồn | Tác giả | Ghi chú |
+| --- | --- | --- | --- |
+| Nhà thép tiền chế | https://unsplash.com/photos/steel-skeleton-of-a-building-under-construction-WOZ7f8lafNQ | Iman Imen | Hình ảnh minh họa; cần tải thủ công, tối ưu WebP/JPG dưới 500 KB trước khi commit. |
+| Cửa kính và vách kính | https://unsplash.com/photos/glass-metal-door-Cmx1Tay0gJ8 | Pavel Nekoranec | Hình ảnh minh họa; cần tải thủ công, tối ưu WebP/JPG dưới 500 KB trước khi commit. |
+| Lan can – cầu thang | https://unsplash.com/photos/a-staircase-with-a-glass-railing-and-metal-handrail-OUQS4yKF0YU | Martti Salmi | Hình ảnh minh họa; cần tải thủ công, tối ưu WebP/JPG dưới 500 KB trước khi commit. |
+| Sắt thép xây dựng | https://unsplash.com/photos/construction-worker-inspects-rebar-on-a-building-site-dSjrv4w1g1Q | Toni Reed | Hình ảnh minh họa; cần tải thủ công, tối ưu WebP/JPG dưới 500 KB trước khi commit. |

@@ -4,7 +4,7 @@ export const DEFAULT_SITE = {
     "tagline": "CƠ KHÍ • XÂY DỰNG • VẬT LIỆU",
     "heroTitle": "Giải pháp cơ khí, xây dựng và vật liệu tại Cà Mau",
     "heroDescription": "Tiếp nhận nhu cầu, khảo sát thực tế, tư vấn phương án phù hợp, báo giá rõ ràng và thi công các hạng mục cơ khí, xây dựng, vật liệu cho khách hàng tại Cà Mau và khu vực lân cận.",
-    "heroImage": "assets/images/stock/stock-steel-structure.svg"
+    "heroImage": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
   },
   "contact": {
     "phone": "Đang cập nhật",
@@ -19,7 +19,7 @@ export const DEFAULT_SITE = {
     "Nhà thép tiền chế",
     "Khung sắt – mái tôn",
     "Cửa nhôm Xingfa",
-    "Cửa kính",
+    "Cửa kính và vách kính",
     "Lan can – cầu thang",
     "Hàng rào – mái che",
     "Gạch lát nền",
@@ -44,10 +44,10 @@ export const DEFAULT_SITE = {
       "title": "Cửa nhôm Xingfa",
       "description": "Tư vấn mẫu cửa, hệ nhôm, kính và phụ kiện theo không gian thực tế.",
       "icon": "🚪",
-      "image": "assets/images/stock/stock-aluminum-glass-door.svg"
+      "image": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
     },
     {
-      "title": "Cửa kính",
+      "title": "Cửa kính và vách kính",
       "description": "Giải pháp cửa kính, vách kính, mặt dựng kính gọn đẹp và dễ sử dụng.",
       "icon": "🪟",
       "image": "assets/images/stock/stock-glass-door.svg"
@@ -119,22 +119,26 @@ export const DEFAULT_SITE = {
       "name": "Cửa nhôm Xingfa theo kích thước",
       "category": "Cửa nhôm Xingfa",
       "description": "Cửa đi, cửa sổ, vách ngăn nhôm kính theo thiết kế và kích thước thực tế.",
-      "cover": "assets/images/stock/stock-aluminum-glass-door.svg",
+      "cover": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
       "images": [
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
         "assets/images/stock/stock-aluminum-glass-door.svg",
         "assets/images/stock/stock-glass-facade.svg"
-      ]
+      ],
+      "note": "Ảnh đại diện từ ảnh admin đã tải; ảnh còn lại là hình ảnh minh họa."
     },
     {
       "id": "p4",
       "name": "Cửa kính và vách kính",
-      "category": "Cửa kính",
+      "category": "Cửa kính và vách kính",
       "description": "Giải pháp kính cho cửa hàng, nhà phố, văn phòng nhỏ và không gian thương mại.",
       "cover": "assets/images/stock/stock-glass-door.svg",
       "images": [
         "assets/images/stock/stock-glass-door.svg",
-        "assets/images/stock/stock-glass-facade.svg"
-      ]
+        "assets/images/stock/stock-glass-facade.svg",
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
+      ],
+      "note": "Hình ảnh minh họa"
     },
     {
       "id": "p5",
@@ -220,14 +224,16 @@ export const DEFAULT_SITE = {
     },
     {
       "id": "c2",
-      "name": "Mẫu cửa nhôm kính",
+      "name": "Mẫu cửa nhôm Xingfa và vách kính",
       "group": "Cửa nhôm kính",
       "area": "Cà Mau",
       "description": "Hình ảnh tham khảo về nhóm cửa nhôm kính, không phải công trình thực tế của đơn vị.",
-      "cover": "assets/images/stock/stock-glass-facade.svg",
+      "cover": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
       "images": [
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
+        "assets/images/stock/stock-aluminum-glass-door.svg",
         "assets/images/stock/stock-glass-facade.svg",
-        "assets/images/stock/stock-aluminum-glass-door.svg"
+        "assets/images/stock/stock-glass-door.svg"
       ],
       "note": "Hình ảnh minh họa"
     },
@@ -259,7 +265,7 @@ export const DEFAULT_SITE = {
       "title": "Những lưu ý khi chọn cửa nhôm Xingfa",
       "date": "2026-06-01",
       "description": "Gợi ý chọn kiểu mở, kính và phụ kiện phù hợp không gian sử dụng.",
-      "image": "assets/images/stock/stock-aluminum-glass-door.svg",
+      "image": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
       "content": "Cửa nhôm cần phù hợp vị trí lắp đặt, hướng gió mưa, nhu cầu lấy sáng và mức độ sử dụng. Nên trao đổi rõ kích thước, màu sắc, phụ kiện và yêu cầu bảo trì."
     },
     {
@@ -285,6 +291,191 @@ export const DEFAULT_SITE = {
       "description": "Gợi ý trao đổi vật liệu theo hạng mục, ngân sách và tiến độ thi công.",
       "image": "assets/images/stock/stock-building-materials.svg",
       "content": "Không nên chọn vật liệu chỉ theo giá. Hãy cân nhắc vị trí sử dụng, độ bền, khả năng bảo trì, nguồn cung và tiến độ thi công để có phương án phù hợp."
+    }
+  ]
+};
+
+export const IMAGE_SEED_PRESET = {
+  "brand": {
+    "heroImage": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
+  },
+  "services": [
+    {
+      "title": "Nhà thép tiền chế",
+      "image": "assets/images/stock/stock-pre-engineered-building.svg"
+    },
+    {
+      "title": "Khung sắt – mái tôn",
+      "image": "assets/images/stock/stock-metal-roof-frame.svg"
+    },
+    {
+      "title": "Cửa nhôm Xingfa",
+      "image": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
+    },
+    {
+      "title": "Cửa kính và vách kính",
+      "image": "assets/images/stock/stock-glass-door.svg"
+    },
+    {
+      "title": "Lan can – cầu thang",
+      "image": "assets/images/stock/stock-railing-stairs.svg"
+    },
+    {
+      "title": "Hàng rào – mái che",
+      "image": "assets/images/stock/stock-fence-awning.svg"
+    },
+    {
+      "title": "Gạch lát nền",
+      "image": "assets/images/stock/stock-floor-tiles.svg"
+    },
+    {
+      "title": "Gạch ốp tường",
+      "image": "assets/images/stock/stock-wall-tiles.svg"
+    },
+    {
+      "title": "Sắt thép xây dựng",
+      "image": "assets/images/stock/stock-construction-steel.svg"
+    },
+    {
+      "title": "Vật liệu xây dựng",
+      "image": "assets/images/stock/stock-building-materials.svg"
+    }
+  ],
+  "products": [
+    {
+      "id": "p1",
+      "cover": "assets/images/stock/stock-pre-engineered-building.svg",
+      "images": [
+        "assets/images/stock/stock-pre-engineered-building.svg",
+        "assets/images/stock/stock-steel-structure.svg",
+        "assets/images/stock/stock-industrial-workshop.svg"
+      ]
+    },
+    {
+      "id": "p2",
+      "cover": "assets/images/stock/stock-metal-roof-frame.svg",
+      "images": [
+        "assets/images/stock/stock-metal-roof-frame.svg",
+        "assets/images/stock/stock-roof-sheet.svg",
+        "assets/images/stock/stock-steel-beams.svg"
+      ]
+    },
+    {
+      "id": "p3",
+      "cover": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
+      "images": [
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
+        "assets/images/stock/stock-aluminum-glass-door.svg",
+        "assets/images/stock/stock-glass-facade.svg"
+      ]
+    },
+    {
+      "id": "p4",
+      "cover": "assets/images/stock/stock-glass-door.svg",
+      "images": [
+        "assets/images/stock/stock-glass-door.svg",
+        "assets/images/stock/stock-glass-facade.svg",
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
+      ]
+    },
+    {
+      "id": "p5",
+      "cover": "assets/images/stock/stock-railing-stairs.svg",
+      "images": [
+        "assets/images/stock/stock-railing-stairs.svg",
+        "assets/images/stock/stock-steel-structure.svg"
+      ]
+    },
+    {
+      "id": "p6",
+      "cover": "assets/images/stock/stock-fence-awning.svg",
+      "images": [
+        "assets/images/stock/stock-fence-awning.svg",
+        "assets/images/stock/stock-metal-roof-frame.svg"
+      ]
+    },
+    {
+      "id": "p7",
+      "cover": "assets/images/stock/stock-floor-tiles.svg",
+      "images": [
+        "assets/images/stock/stock-floor-tiles.svg",
+        "assets/images/stock/stock-building-materials.svg"
+      ]
+    },
+    {
+      "id": "p8",
+      "cover": "assets/images/stock/stock-wall-tiles.svg",
+      "images": [
+        "assets/images/stock/stock-wall-tiles.svg",
+        "assets/images/stock/stock-brick-cement.svg"
+      ]
+    },
+    {
+      "id": "p9",
+      "cover": "assets/images/stock/stock-construction-steel.svg",
+      "images": [
+        "assets/images/stock/stock-construction-steel.svg",
+        "assets/images/stock/stock-steel-beams.svg"
+      ]
+    },
+    {
+      "id": "p10",
+      "cover": "assets/images/stock/stock-building-materials.svg",
+      "images": [
+        "assets/images/stock/stock-building-materials.svg",
+        "assets/images/stock/stock-warehouse-materials.svg",
+        "assets/images/stock/stock-brick-cement.svg"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "c1",
+      "cover": "assets/images/stock/stock-industrial-workshop.svg",
+      "images": [
+        "assets/images/stock/stock-industrial-workshop.svg",
+        "assets/images/stock/stock-pre-engineered-building.svg"
+      ]
+    },
+    {
+      "id": "c2",
+      "cover": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
+      "images": [
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
+        "assets/images/stock/stock-aluminum-glass-door.svg",
+        "assets/images/stock/stock-glass-facade.svg",
+        "assets/images/stock/stock-glass-door.svg"
+      ]
+    },
+    {
+      "id": "c3",
+      "cover": "assets/images/stock/stock-fence-awning.svg",
+      "images": [
+        "assets/images/stock/stock-fence-awning.svg",
+        "assets/images/stock/stock-metal-roof-frame.svg"
+      ]
+    }
+  ],
+  "posts": [
+    {
+      "id": "b1",
+      "image": "assets/images/stock/stock-blueprint.svg"
+    },
+    {
+      "id": "b2",
+      "image": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
+    },
+    {
+      "id": "b3",
+      "image": "assets/images/stock/stock-floor-tiles.svg"
+    },
+    {
+      "id": "b4",
+      "image": "assets/images/stock/stock-roof-sheet.svg"
+    },
+    {
+      "id": "b5",
+      "image": "assets/images/stock/stock-building-materials.svg"
     }
   ]
 };
