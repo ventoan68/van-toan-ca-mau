@@ -1,1 +1,6 @@
-export async function onRequestPost(){return new Response(JSON.stringify({ok:true}),{headers:{'content-type':'application/json','set-cookie':'vt_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'}})}
+import { clearSessionCookie } from '../../_shared/auth.js';
+import { json } from '../../_shared/response.js';
+
+export async function onRequestPost() {
+  return json({ ok: true }, 200, { 'set-cookie': clearSessionCookie() });
+}

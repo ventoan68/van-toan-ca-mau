@@ -1,5 +1,19 @@
-const json=(body,status=200,headers={})=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
-const enc=new TextEncoder();
-async function hmac(secret,value){const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);const sig=await crypto.subtle.sign('HMAC',key,enc.encode(value));return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/,'');}
-async function verifyPassword(password,stored){if(!stored||!stored.startsWith('pbkdf2$sha256$'))return false;const[, , iterRaw,salt,expected]=stored.split('$');const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:enc.encode(salt),iterations:Number(iterRaw)},key,256);const actual=btoa(String.fromCharCode(...new Uint8Array(bits))).replace(/=+$/,'');return actual===expected;}
-export async function onRequestPost({request,env}){try{const {username,password}=await request.json();if(!env.ADMIN_USERNAME||!env.ADMIN_PASSWORD_HASH||!env.SESSION_SECRET)return json({error:'Admin chưa được cấu hình'},503);const ok=username===env.ADMIN_USERNAME&&await verifyPassword(password,env.ADMIN_PASSWORD_HASH);if(!ok)return json({error:'Thông tin đăng nhập không hợp lệ'},401);const exp=Math.floor(Date.now()/1000)+60*60*8;const payload=btoa(JSON.stringify({u:username,exp}));const sig=await hmac(env.SESSION_SECRET,payload);return json({ok:true},200, {'set-cookie':`vt_session=${payload}.${sig}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${60*60*8}`});}catch{return json({error:'Không thể đăng nhập'},400)}}
+import { createSessionCookie, verifyPassword } from '../../_shared/auth.js';
+import { json } from '../../_shared/response.js';
+import { cleanText } from '../../_shared/sanitize.js';
+
+export async function onRequestPost({ request, env }) {
+  try {
+    if (!env.ADMIN_USERNAME || !env.ADMIN_PASSWORD_HASH || !env.SESSION_SECRET) {
+      return json({ error: 'Admin chưa được cấu hình' }, 503);
+    }
+    const body = await request.json();
+    const username = cleanText(body.username, 80);
+    const password = String(body.password ?? '');
+    const ok = username === env.ADMIN_USERNAME && await verifyPassword(password, env.ADMIN_PASSWORD_HASH);
+    if (!ok) return json({ error: 'Thông tin đăng nhập không hợp lệ' }, 401);
+    return json({ ok: true, username }, 200, { 'set-cookie': await createSessionCookie(username, env.SESSION_SECRET) });
+  } catch {
+    return json({ error: 'Không thể đăng nhập' }, 400);
+  }
+}
