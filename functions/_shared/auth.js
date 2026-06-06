@@ -1,8 +1,21 @@
 import { json } from './response.js';
 
 const enc = new TextEncoder();
+const dec = new TextDecoder();
 const SESSION_COOKIE = 'vt_session';
 const SESSION_MAX_AGE = 60 * 60 * 8;
+const HMAC_ALGORITHM = { name: 'HMAC', hash: { name: 'SHA-256' } };
+const PBKDF2_HASH = { name: 'SHA-256' };
+
+function logAuthError(stage, error) {
+  console.error(JSON.stringify({
+    stage,
+    error: {
+      name: error?.name || 'Error',
+      message: error?.message || 'Unknown authentication error',
+    },
+  }));
+}
 
 function base64Url(bytes) {
   let binary = '';
@@ -17,7 +30,7 @@ function fromBase64Url(value) {
 }
 
 async function hmac(secret, value) {
-  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), HMAC_ALGORITHM, false, ['sign']);
   return base64Url(new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(value))));
 }
 
@@ -32,11 +45,13 @@ function safeEqual(a, b) {
 
 export async function verifyPassword(password, stored) {
   if (!stored || !stored.startsWith('pbkdf2$sha256$')) return false;
-  const [, , iterRaw, salt, expected] = stored.split('$');
+  const parts = stored.split('$');
+  if (parts.length !== 5) return false;
+  const [, , iterRaw, salt, expected] = parts;
   const iterations = Number(iterRaw);
   if (!Number.isInteger(iterations) || iterations < 100000 || !salt || !expected) return false;
   const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode(salt), iterations }, key, 256);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: PBKDF2_HASH, salt: enc.encode(salt), iterations }, key, 256);
   return safeEqual(base64Url(new Uint8Array(bits)), expected);
 }
 
@@ -51,17 +66,18 @@ export function clearSessionCookie() {
 }
 
 export async function getSession(request, env) {
-  const raw = request.headers.get('cookie')?.match(new RegExp(`${SESSION_COOKIE}=([^;]+)`))?.[1];
-  if (!raw || !env.SESSION_SECRET) return null;
-  const [payload, sig] = raw.split('.');
-  if (!payload || !sig) return null;
-  const expected = await hmac(env.SESSION_SECRET, payload);
-  if (!safeEqual(expected, sig)) return null;
   try {
-    const data = JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
+    const raw = request.headers.get('cookie')?.match(new RegExp(`${SESSION_COOKIE}=([^;]+)`))?.[1];
+    if (!raw || !env.SESSION_SECRET) return null;
+    const [payload, sig] = raw.split('.');
+    if (!payload || !sig) return null;
+    const expected = await hmac(env.SESSION_SECRET, payload);
+    if (!safeEqual(expected, sig)) return null;
+    const data = JSON.parse(dec.decode(fromBase64Url(payload)));
     if (!data.u || data.exp <= Date.now() / 1000) return null;
     return data;
-  } catch {
+  } catch (error) {
+    logAuthError('get_session', error);
     return null;
   }
 }

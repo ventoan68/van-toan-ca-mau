@@ -25,7 +25,11 @@ async function api(path, options = {}) {
     ...options,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Yêu cầu thất bại');
+  if (!res.ok) {
+    const error = new Error(data.error || 'Yêu cầu thất bại');
+    error.status = res.status;
+    throw error;
+  }
   return data;
 }
 
@@ -59,7 +63,9 @@ async function loginSubmit(event) {
     dash.classList.remove('hidden');
     await loadData();
   } catch (error) {
-    status.textContent = error.message;
+    status.textContent = error.status === 401
+      ? 'Thông tin đăng nhập không hợp lệ'
+      : 'Không thể đăng nhập. Vui lòng kiểm tra cấu hình và thử lại.';
   }
 }
 
