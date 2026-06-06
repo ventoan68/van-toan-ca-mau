@@ -4,7 +4,7 @@ Website hiện giữ SVG fallback trong `assets/images/stock/` và `assets/image
 
 ## Nguồn hợp lệ đã tra cứu
 
-Các nguồn dưới đây phù hợp để quản trị viên tải ảnh minh họa hợp lệ rồi upload qua dashboard production lên R2:
+Các nguồn dưới đây phù hợp để quản trị viên tải ảnh minh họa hợp lệ rồi upload qua dashboard production vào `assets/uploads/` của GitHub:
 
 | Nguồn | URL | Gợi ý dùng | Ghi chú hiển thị |
 |---|---|---|---|
@@ -19,7 +19,7 @@ Các nguồn dưới đây phù hợp để quản trị viên tải ảnh minh 
 ## Quy tắc dùng ảnh
 
 - Không dùng ảnh từ Google Images, Facebook, Pinterest hoặc nguồn không rõ giấy phép.
-- Không hotlink ảnh ngoài trong production; hãy tải ảnh hợp lệ rồi upload qua admin để lưu vào R2.
+- Không hotlink ảnh ngoài trong production; hãy tải ảnh hợp lệ rồi upload qua admin để lưu vào `assets/uploads/` của GitHub.
 - Không ghi “công trình thực tế” nếu ảnh không phải công trình thật do khách hàng/người dùng cung cấp.
 - Ảnh người dùng cung cấp nên được tối ưu về dung lượng trước khi upload.
-- API production chỉ nhận JPG/JPEG, PNG, WebP và giới hạn 5MB/ảnh.
+- API production chỉ nhận JPG/JPEG, PNG, WebP và giới hạn 1 MB/ảnh.

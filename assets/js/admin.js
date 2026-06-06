@@ -8,6 +8,10 @@ const login = $('[data-login]');
 const dash = $('[data-dashboard]');
 const statusBox = $('[data-global-status]');
 const slug = () => `item-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+const MAX_UPLOAD_SIZE = 1024 * 1024;
+const PLACEHOLDER_IMAGE = 'assets/images/placeholders/blueprint.svg';
+const isGitHubUpload = (url) => String(url || '').startsWith('https://raw.githubusercontent.com/') && String(url).includes('/assets/uploads/');
+const imageFallback = (img) => { if (!img.dataset.fallbackApplied) { img.dataset.fallbackApplied = '1'; img.src = PLACEHOLDER_IMAGE; } };
 
 function showStatus(message, type = 'info') {
   statusBox.textContent = message;
@@ -98,7 +102,8 @@ function renderList(selector, items, meta, type) {
   items.forEach((item, index) => {
     const node = tpl.content.cloneNode(true);
     const img = node.querySelector('img');
-    img.src = item.cover || item.image;
+    img.src = item.cover || item.image || PLACEHOLDER_IMAGE;
+    img.onerror = () => imageFallback(img);
     img.alt = item.name || item.title;
     node.querySelector('b').textContent = item.name || item.title;
     node.querySelector('p').textContent = item.description || '';
@@ -170,7 +175,7 @@ function renderImageManager() {
   const images = getCurrentImages(item, type);
   $('[data-image-manager]').innerHTML = images.map((src, imageIndex) => `
     <article class="image-row" data-image-index="${imageIndex}">
-      <img src="${src}" alt="Ảnh ${imageIndex + 1}">
+      <img src="${src}" alt="Ảnh ${imageIndex + 1}" onerror="this.src='${PLACEHOLDER_IMAGE}'">
       <span>${imageIndex === 0 || src === item.cover || src === item.image ? 'Ảnh đại diện' : 'Ảnh chi tiết'}</span>
       <button type="button" data-cover>Đại diện</button>
       <button type="button" data-up>↑</button>
@@ -182,31 +187,43 @@ function renderImageManager() {
 async function uploadFiles(files) {
   const progress = $('[data-upload-progress]');
   const status = $('[data-upload-status]');
-  const uploaded = [];
-  let done = 0;
-  for (const file of files) {
-    const form = new FormData();
-    form.append('file', file);
-    status.textContent = `Đang tải ${file.name}...`;
-    const result = await api('/api/admin/upload', { method: 'POST', body: form });
-    uploaded.push(...result.files.map((entry) => entry.url));
-    done += 1;
-    progress.value = Math.round((done / files.length) * 100);
-  }
-  status.textContent = `Đã tải ${uploaded.length} ảnh lên R2.`;
+  const selected = [...files];
+  const tooLarge = selected.find((file) => file.size > MAX_UPLOAD_SIZE);
+  if (tooLarge) throw new Error(`Ảnh ${tooLarge.name} vượt quá 1 MB. Vui lòng tối ưu ảnh trước khi upload.`);
+  const form = new FormData();
+  selected.forEach((file) => form.append('files', file));
+  progress.value = 10;
+  status.textContent = `Đang upload ${selected.length} ảnh lên GitHub...`;
+  const result = await api('/api/admin/upload', { method: 'POST', body: form });
+  progress.value = 100;
+  const uploaded = (result.files || []).map((entry) => entry.url);
+  status.textContent = `Đã upload ${uploaded.length} ảnh vào assets/uploads/ trên GitHub.`;
   return uploaded;
 }
 
 function previewSelectedFiles(input) {
   const wrap = $('[data-preview-grid]');
+  const status = $('[data-upload-status]');
+  const count = $('[data-selected-count]');
+  const files = [...input.files];
   wrap.innerHTML = '';
-  [...input.files].forEach((file) => {
+  count.textContent = files.length ? `Đã chọn ${files.length} ảnh.` : 'Chưa chọn ảnh.';
+  const tooLarge = files.filter((file) => file.size > MAX_UPLOAD_SIZE);
+  status.textContent = tooLarge.length
+    ? `${tooLarge.length} ảnh vượt quá 1 MB: ${tooLarge.map((file) => file.name).join(', ')}`
+    : 'Ảnh JPG, PNG, WebP tối đa 1 MB/ảnh. Có thể chọn nhiều ảnh trên desktop, Android và iPhone.';
+  files.forEach((file) => {
+    const card = document.createElement('figure');
     const url = URL.createObjectURL(file);
     const img = document.createElement('img');
+    const caption = document.createElement('figcaption');
     img.src = url;
     img.alt = file.name;
     img.onload = () => URL.revokeObjectURL(url);
-    wrap.appendChild(img);
+    caption.textContent = `${file.name} • ${(file.size / 1024).toFixed(0)} KB${file.size > MAX_UPLOAD_SIZE ? ' • vượt 1 MB' : ''}`;
+    card.className = file.size > MAX_UPLOAD_SIZE ? 'invalid' : '';
+    card.append(img, caption);
+    wrap.appendChild(card);
   });
 }
 
@@ -227,10 +244,19 @@ async function editorSubmit(event) {
   }
   item.description = fd.get('description');
   const files = [...event.currentTarget.gallery.files];
+  if (files.some((file) => file.size > MAX_UPLOAD_SIZE)) {
+    $('[data-upload-status]').textContent = 'Có ảnh vượt quá 1 MB. Vui lòng bỏ ảnh đó hoặc nén lại trước khi lưu.';
+    return;
+  }
   if (files.length) {
-    const urls = await uploadFiles(files);
-    const images = getCurrentImages(item, type);
-    setCurrentImages(item, type, [...images, ...urls]);
+    try {
+      const urls = await uploadFiles(files);
+      const images = getCurrentImages(item, type);
+      setCurrentImages(item, type, [...images, ...urls]);
+    } catch (error) {
+      $('[data-upload-status]').textContent = error.message || 'Không thể upload ảnh.';
+      return;
+    }
   }
   closeEditor();
   await saveSite(`Đã lưu ${itemName(type)} vào D1.`);
@@ -250,8 +276,13 @@ async function imageManagerClick(event) {
   if (event.target.matches('[data-down]') && imageIndex < images.length - 1) [images[imageIndex + 1], images[imageIndex]] = [images[imageIndex], images[imageIndex + 1]];
   if (event.target.matches('[data-remove]') && confirm('Xóa riêng ảnh này?')) {
     const [removed] = images.splice(imageIndex, 1);
-    if (removed?.startsWith('/media/uploads/')) {
-      await api('/api/admin/upload', { method: 'DELETE', body: JSON.stringify({ url: removed }) }).catch(() => {});
+    if (isGitHubUpload(removed)) {
+      try {
+        await api('/api/admin/upload', { method: 'DELETE', body: JSON.stringify({ url: removed }) });
+        showStatus('Đã xóa ảnh khỏi assets/uploads/ trên GitHub.', 'success');
+      } catch (error) {
+        showStatus(error.message || 'Không thể xóa ảnh trên GitHub.', 'error');
+      }
     }
   }
   setCurrentImages(item, type, images);

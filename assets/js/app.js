@@ -1,5 +1,8 @@
 const state = { site: null, lightboxImages: [], lightboxIndex: 0 };
 const safe = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+const PLACEHOLDER_IMAGE = 'assets/images/placeholders/blueprint.svg';
+const imageSrc = (value) => safe(value || PLACEHOLDER_IMAGE);
+const fallbackAttr = `onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}'"`;
 
 async function loadSite() {
   try {
@@ -24,7 +27,10 @@ function renderSite(site) {
   setText('[data-hero-title]', site.brand.heroTitle);
   setText('[data-hero-description]', site.brand.heroDescription);
   const heroImage = document.querySelector('[data-hero-image]');
-  if (heroImage && site.brand.heroImage) heroImage.src = site.brand.heroImage;
+  if (heroImage) {
+    heroImage.src = site.brand.heroImage || PLACEHOLDER_IMAGE;
+    heroImage.onerror = () => { heroImage.onerror = null; heroImage.src = PLACEHOLDER_IMAGE; };
+  }
   const heroBg = document.querySelector('.hero-bg');
   if (heroBg && site.brand.heroImage) {
     heroBg.style.backgroundImage = `radial-gradient(circle at 20% 10%,rgba(249,115,22,.35),transparent 28%),linear-gradient(115deg,rgba(7,26,47,.95),rgba(7,26,47,.76)),url('${site.brand.heroImage}')`;
@@ -48,7 +54,7 @@ function renderSite(site) {
 function renderServices(items) {
   document.querySelector('[data-services]').innerHTML = items.map((service) => `
     <article class="service-card">
-      <img src="${safe(service.image)}" alt="${safe(service.title)} minh họa" loading="lazy">
+      <img src="${imageSrc(service.image)}" alt="${safe(service.title)} minh họa" loading="lazy" ${fallbackAttr}>
       <span class="service-icon" aria-hidden="true">${safe(service.icon)}</span>
       <h3>${safe(service.title)}</h3>
       <p>${safe(service.description)}</p>
@@ -71,7 +77,7 @@ function renderFilters(categories) {
 function productCard(item, type = 'product') {
   const images = item.images?.length ? item.images : [item.cover || item.image].filter(Boolean);
   return `<article class="${type}-card">
-    <div class="media"><img src="${safe(item.cover || item.image)}" alt="${safe(item.name || item.title)}" loading="lazy"><span class="badge">${images.length} ảnh</span></div>
+    <div class="media"><img src="${imageSrc(item.cover || item.image)}" alt="${safe(item.name || item.title)}" loading="lazy" ${fallbackAttr}><span class="badge">${images.length} ảnh</span></div>
     <div class="card-body"><span class="category">${safe(item.category || item.group || 'Hình ảnh minh họa')}</span><h3>${safe(item.name || item.title)}</h3><p>${safe(item.description)}</p>
     ${item.note ? `<span class="note">${safe(item.note)}</span>` : ''}${item.area ? `<p><b>Khu vực:</b> ${safe(item.area)}</p>` : ''}
     <div class="card-actions"><button class="btn btn-dark" type="button" data-gallery="${encodeURIComponent(JSON.stringify(images))}" data-title="${safe(item.name || item.title)}">Xem bộ ảnh</button><a class="btn btn-primary" href="#quote">Yêu cầu báo giá</a></div></div>
@@ -89,7 +95,7 @@ function renderProjects(items) {
 
 function renderPosts(items) {
   document.querySelector('[data-posts]').innerHTML = items.map((post) => `
-    <article class="post-card"><div class="media"><img src="${safe(post.image)}" alt="${safe(post.title)}" loading="lazy"></div>
+    <article class="post-card"><div class="media"><img src="${imageSrc(post.image)}" alt="${safe(post.title)}" loading="lazy" ${fallbackAttr}></div>
       <div class="card-body"><span class="category">${safe(new Date(post.date).toLocaleDateString('vi-VN'))}</span><h3>${safe(post.title)}</h3><p>${safe(post.description)}</p><details><summary class="btn btn-dark">Xem chi tiết</summary><p>${safe(post.content)}</p></details></div>
     </article>`).join('');
 }
@@ -105,10 +111,11 @@ function openLightbox(images, title) {
 
 function updateLightbox(title = 'Bộ ảnh') {
   const img = document.querySelector('[data-lightbox-image]');
-  img.src = state.lightboxImages[state.lightboxIndex];
+  img.src = state.lightboxImages[state.lightboxIndex] || PLACEHOLDER_IMAGE;
+  img.onerror = () => { img.onerror = null; img.src = PLACEHOLDER_IMAGE; };
   img.alt = `${title} - ảnh ${state.lightboxIndex + 1}`;
   document.querySelector('[data-lightbox-caption]').textContent = `${title} • Ảnh ${state.lightboxIndex + 1}/${state.lightboxImages.length} • Hình ảnh minh họa`;
-  document.querySelector('[data-lightbox-thumbs]').innerHTML = state.lightboxImages.map((src, index) => `<button type="button" class="${index === state.lightboxIndex ? 'active' : ''}" data-thumb="${index}" aria-label="Xem ảnh ${index + 1}"><img src="${safe(src)}" alt="Thumbnail ${index + 1}"></button>`).join('');
+  document.querySelector('[data-lightbox-thumbs]').innerHTML = state.lightboxImages.map((src, index) => `<button type="button" class="${index === state.lightboxIndex ? 'active' : ''}" data-thumb="${index}" aria-label="Xem ảnh ${index + 1}"><img src="${imageSrc(src)}" alt="Thumbnail ${index + 1}" ${fallbackAttr}></button>`).join('');
 }
 
 function closeLightbox() {
