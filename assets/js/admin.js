@@ -11,6 +11,9 @@ const statusBox = $('[data-global-status]');
 const slug = () => `item-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 const MAX_ORIGINAL_UPLOAD_SIZE = 10 * 1024 * 1024;
 const MAX_OPTIMIZED_UPLOAD_SIZE = 5 * 1024 * 1024;
+const MAX_BATCH_UPLOAD_SIZE = 20 * 1024 * 1024;
+const MAX_FILES_PER_BATCH = 10;
+const MAX_FILES_PER_BATCH_MESSAGE = 'Mỗi lần chỉ được chọn tối đa 10 ảnh. Vui lòng bỏ bớt ảnh và thử lại.';
 const TARGET_OPTIMIZED_SIZE = 1.5 * 1024 * 1024;
 const MAX_OPTIMIZED_EDGE = 1920;
 const ALLOWED_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -43,7 +46,7 @@ function getPath(obj, path) { return path.split('.').reduce((acc, key) => acc?.[
 function setPath(obj, path, value) { const parts = path.split('.'); let cur = obj; while (parts.length > 1) cur = cur[parts.shift()]; cur[parts[0]] = value; }
 function itemName(type) { return type === 'products' ? 'sản phẩm' : type === 'projects' ? 'công trình' : 'bài viết'; }
 function itemDefaults(type) {
-  if (type === 'posts') return { id: slug(), title: 'Bài viết mới', date: new Date().toISOString().slice(0, 10), description: 'Mô tả ngắn', content: 'Nội dung bài viết', image: 'assets/images/stock/stock-blueprint.svg' };
+  if (type === 'posts') return { id: slug(), title: 'Bài viết mới', date: new Date().toISOString().slice(0, 10), description: 'Mô tả ngắn', content: 'Nội dung bài viết', image: 'assets/images/stock/stock-blueprint.svg', images: ['assets/images/stock/stock-blueprint.svg'] };
   return { id: slug(), name: type === 'products' ? 'Sản phẩm mới' : 'Công trình mới', category: siteData.categories?.[0] || 'Đang cập nhật', group: 'Hình ảnh minh họa', area: 'Cà Mau', description: 'Mô tả ngắn', cover: 'assets/images/stock/stock-blueprint.svg', images: ['assets/images/stock/stock-blueprint.svg'], note: 'Hình ảnh minh họa' };
 }
 
@@ -169,15 +172,22 @@ function closeEditor() {
 }
 
 function getCurrentImages(item, type) {
-  if (type === 'posts') return [item.image].filter(Boolean);
+  if (type === 'posts') {
+    const images = Array.isArray(item.images) ? item.images.filter(Boolean) : [];
+    if (item.image && !images.includes(item.image)) images.unshift(item.image);
+    return images.length ? images : [item.image].filter(Boolean);
+  }
   return item.images?.length ? item.images : [item.cover].filter(Boolean);
 }
 
 function setCurrentImages(item, type, images) {
-  if (type === 'posts') item.image = images[0] || 'assets/images/stock/stock-blueprint.svg';
-  else {
-    item.images = images;
-    item.cover = images.includes(item.cover) ? item.cover : images[0] || 'assets/images/stock/stock-blueprint.svg';
+  const nextImages = images.filter(Boolean);
+  if (type === 'posts') {
+    item.images = nextImages;
+    item.image = nextImages[0] || 'assets/images/stock/stock-blueprint.svg';
+  } else {
+    item.images = nextImages;
+    item.cover = nextImages.includes(item.cover) ? item.cover : nextImages[0] || 'assets/images/stock/stock-blueprint.svg';
   }
 }
 
@@ -370,21 +380,27 @@ async function uploadFiles(files, refs = {}) {
   const progress = refs.progress || $('[data-upload-progress]');
   const status = refs.status || $('[data-upload-status]');
   const selected = [...files];
+  if (selected.length > MAX_FILES_PER_BATCH) throw new Error(MAX_FILES_PER_BATCH_MESSAGE);
   const originalTooLarge = selected.find((file) => file.size > MAX_ORIGINAL_UPLOAD_SIZE);
   if (originalTooLarge) throw new Error('Ảnh gốc không được vượt quá 10 MB.');
   progress.value = 5;
   status.textContent = `Đang tối ưu ${selected.length} ảnh trong trình duyệt...`;
   const optimized = await optimizeSelectedFiles(selected, (index, total, file) => {
     progress.value = 5 + Math.round((index / Math.max(total, 1)) * 45);
-    status.textContent = `Đang tối ưu ${index + 1}/${total}: ${file.name}`;
+    status.textContent = `Đang tối ưu ảnh ${index + 1}/${total}...`;
   });
-  const form = new FormData();
-  optimized.files.forEach((file) => form.append('files', file));
-  progress.value = 60;
-  status.textContent = `Đang upload ${optimized.files.length} ảnh đã tối ưu lên GitHub...`;
-  const result = await api('/api/admin/upload', { method: 'POST', body: form });
+  if (optimized.optimizedTotal > MAX_BATCH_UPLOAD_SIZE) throw new Error('Tổng dung lượng một lần upload không được vượt quá 20 MB.');
+  const uploaded = [];
+  for (let index = 0; index < optimized.files.length; index += 1) {
+    const file = optimized.files[index];
+    const form = new FormData();
+    form.append('files', file);
+    progress.value = 60 + Math.round((index / Math.max(optimized.files.length, 1)) * 35);
+    status.textContent = `Đang upload ảnh ${index + 1}/${optimized.files.length} lên GitHub...`;
+    const result = await api('/api/admin/upload', { method: 'POST', body: form });
+    uploaded.push(...(result.files || []).map((entry) => entry.url));
+  }
   progress.value = 100;
-  const uploaded = (result.files || []).map((entry) => entry.url);
   status.textContent = `Đã upload ${uploaded.length} ảnh vào assets/uploads/ trên GitHub. Trước tối ưu: ${formatBytes(optimized.originalTotal)}. Sau tối ưu: ${formatBytes(optimized.optimizedTotal)}.`;
   return uploaded;
 }
@@ -395,13 +411,15 @@ function previewSelectedFiles(input) {
   const count = $('[data-selected-count]');
   const files = [...input.files];
   wrap.innerHTML = '';
-  count.textContent = files.length ? `Đã chọn ${files.length} ảnh.` : 'Chưa chọn ảnh.';
+  count.textContent = files.length ? `Đã chọn ${files.length}/${MAX_FILES_PER_BATCH} ảnh.` : 'Chưa chọn ảnh.';
+  const tooMany = files.length > MAX_FILES_PER_BATCH;
   const invalidType = files.filter((file) => !isAllowedImage(file));
   const tooLarge = files.filter((file) => file.size > MAX_ORIGINAL_UPLOAD_SIZE);
-  if (tooLarge.length) status.textContent = `${tooLarge.length} ảnh vượt quá 10 MB: ${tooLarge.map((file) => file.name).join(', ')}. Ảnh gốc không được vượt quá 10 MB.`;
+  if (tooMany) status.textContent = MAX_FILES_PER_BATCH_MESSAGE;
+  else if (tooLarge.length) status.textContent = `${tooLarge.length} ảnh vượt quá 10 MB: ${tooLarge.map((file) => file.name).join(', ')}. Ảnh gốc không được vượt quá 10 MB.`;
   else if (invalidType.length) status.textContent = `${invalidType.length} file không hợp lệ. Chỉ nhận JPG, JPEG, PNG hoặc WebP.`;
   else status.textContent = 'Sẽ tự động tối ưu khi lưu. Ảnh JPG, PNG, WebP tối đa 10 MB/ảnh gốc; sau tối ưu gửi lên server tối đa 5 MB/ảnh.';
-  files.forEach((file) => {
+  files.slice(0, MAX_FILES_PER_BATCH).forEach((file) => {
     const card = document.createElement('figure');
     const url = URL.createObjectURL(file);
     const img = document.createElement('img');
@@ -472,6 +490,10 @@ async function editorSubmit(event) {
   }
   if (files.some((file) => file.size > MAX_ORIGINAL_UPLOAD_SIZE)) {
     $('[data-upload-status]').textContent = 'Ảnh gốc không được vượt quá 10 MB.';
+    return;
+  }
+  if (files.length > MAX_FILES_PER_BATCH) {
+    $('[data-upload-status]').textContent = MAX_FILES_PER_BATCH_MESSAGE;
     return;
   }
   if (files.length) {

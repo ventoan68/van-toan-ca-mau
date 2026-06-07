@@ -9,6 +9,7 @@ const ALLOWED = new Map([
   ['image/webp', 'webp'],
 ]);
 const MAX_SIZE = 5 * 1024 * 1024;
+const MAX_FILES_PER_BATCH = 10;
 const MAX_BATCH_SIZE = 20 * 1024 * 1024;
 
 function githubConfig(env) {
@@ -115,6 +116,7 @@ export async function onRequestPost({ request, env }) {
     const form = await request.formData();
     const files = [...form.getAll('files'), ...form.getAll('file')].filter((file) => file && typeof file.arrayBuffer === 'function');
     if (!files.length) return json({ error: 'Không tìm thấy file ảnh' }, 400);
+    if (files.length > MAX_FILES_PER_BATCH) return json({ error: 'Mỗi lần chỉ được upload tối đa 10 ảnh.' }, 400);
     const batchSize = files.reduce((total, file) => total + (file.size || 0), 0);
     if (batchSize > MAX_BATCH_SIZE) return json({ error: 'Tổng dung lượng một lần upload không được vượt quá 20 MB.' }, 400);
     const uploaded = [];
