@@ -2,3 +2,22 @@
 @media (max-width:1050px){.primary-nav,.header-actions{display:none}.menu-toggle{display:block}.primary-nav{position:absolute;left:16px;right:16px;top:calc(var(--header) + 8px);background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:14px;flex-direction:column}.primary-nav.open{display:flex}.hero-grid,.split,.contact-grid{grid-template-columns:1fr}.strengths{grid-template-columns:repeat(2,1fr);margin-top:20px}.service-grid,.product-grid,.project-grid,.post-grid{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:repeat(2,1fr)}.hero{min-height:auto;padding-top:30px}.hero-visual img{height:430px}}
 @media (max-width:640px){:root{--header:68px}.container{width:min(100% - 24px,1180px)}.brand small{display:none}.section{padding:64px 0}.hero h1{font-size:38px}.hero-actions .btn{width:100%}.strengths,.service-grid,.product-grid,.project-grid,.post-grid,.timeline{grid-template-columns:1fr}.hero-visual img{height:300px}.hero-card{position:static;margin-top:12px}.media img{height:210px}.floating-actions{left:10px;right:10px;bottom:10px;flex-direction:row}.floating-actions a{flex:1;text-align:center;padding:10px 8px;font-size:13px}.site-footer{padding-bottom:76px}.site-footer .container{flex-direction:column;align-items:flex-start}.lightbox{padding:10px}.lightbox-dialog{grid-template-columns:42px 1fr 42px}.lightbox button{width:40px;height:40px}.lightbox img{max-height:62svh}.lightbox-thumbs{justify-content:flex-start}.contact-info,.quote-form{padding:20px}}
 .form-note.success{border-left-color:#15803d;color:#15803d;background:#f0fdf4}.form-note.error{border-left-color:#dc2626;color:#dc2626;background:#fef2f2}.quote-form button:disabled{opacity:.6;cursor:not-allowed}.quote-form{scroll-margin-top:90px}
+
+.website-design-ad{padding-top:0;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}
+.website-design-banner{position:relative;overflow:hidden;display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;padding:30px;border:1px solid rgba(249,115,22,.28);border-radius:28px;background:linear-gradient(135deg,#fff 0%,#fff7ed 48%,#e0f2fe 100%);box-shadow:0 22px 54px rgba(7,26,47,.12)}
+.website-design-banner::before{content:"";position:absolute;inset:auto -80px -130px auto;width:260px;height:260px;border-radius:50%;background:rgba(249,115,22,.18);pointer-events:none}
+.website-design-banner::after{content:"";position:absolute;inset:-90px auto auto 36%;width:220px;height:220px;border-radius:50%;background:rgba(7,26,47,.08);pointer-events:none}
+.website-design-icon{position:relative;z-index:1;display:grid;place-items:center;width:82px;height:82px;border-radius:24px;background:var(--navy);color:#fff;font-size:42px;font-weight:900;box-shadow:0 16px 32px rgba(7,26,47,.18)}
+.website-design-copy,.website-design-actions{position:relative;z-index:1}
+.website-design-label{display:inline-flex;margin:0 0 10px;padding:7px 12px;border-radius:999px;background:#fff;color:var(--orange);border:1px solid #fed7aa;font-size:12px;font-weight:900;letter-spacing:.08em}
+.website-design-copy h2{margin:0;color:var(--navy);font-size:clamp(26px,3vw,40px);line-height:1.12}
+.website-design-copy p{max-width:780px;margin:10px 0 0;color:var(--text)}
+.website-design-lead{font-size:clamp(18px,2vw,22px);font-weight:900;color:var(--navy)!important}
+.website-design-phone{font-weight:900;color:var(--navy)!important}
+.website-design-phone a{color:var(--orange);white-space:nowrap}
+.website-design-actions{display:flex;flex-direction:column;gap:10px;min-width:190px}
+.website-design-actions .btn{justify-content:center;text-align:center}
+.website-design-call{box-shadow:0 14px 28px rgba(249,115,22,.25)}
+.website-design-secondary{background:#fff;color:var(--navy);border:1px solid rgba(7,26,47,.16)}
+@media (max-width:1050px){.website-design-banner{grid-template-columns:auto 1fr}.website-design-actions{grid-column:1/-1;flex-direction:row;min-width:0}.website-design-actions .btn{flex:1}}
+@media (max-width:640px){.website-design-ad{padding-bottom:32px}.website-design-banner{grid-template-columns:1fr;gap:16px;padding:22px;border-radius:22px}.website-design-icon{width:62px;height:62px;border-radius:18px;font-size:32px}.website-design-copy h2{font-size:clamp(24px,9vw,32px);overflow-wrap:anywhere}.website-design-copy p{font-size:15px}.website-design-phone a{display:inline-block;font-size:20px}.website-design-actions{flex-direction:column}.website-design-actions .btn{width:100%;padding:14px 16px}.website-design-secondary{display:none}}
