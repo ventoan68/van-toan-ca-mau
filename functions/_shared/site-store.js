@@ -13,6 +13,39 @@ export async function getSite(env) {
   }
 }
 
+function byIdOrTitle(items = [], patchItems = []) {
+  if (!Array.isArray(items) || !Array.isArray(patchItems)) return items;
+  return items.map((item) => {
+    const patch = patchItems.find((entry) => (entry.id && entry.id === item.id) || (entry.title && entry.title === item.title));
+    if (!patch) return item;
+    return {
+      ...item,
+      ...(patch.image ? { image: patch.image } : {}),
+      ...(patch.cover ? { cover: patch.cover } : {}),
+      ...(Array.isArray(patch.images) ? { images: patch.images } : {}),
+    };
+  });
+}
+
+function servicesByTitle(items = [], patchItems = []) {
+  if (!Array.isArray(items) || !Array.isArray(patchItems)) return items;
+  return items.map((item) => {
+    const patch = patchItems.find((entry) => entry.title === item.title);
+    return patch?.image ? { ...item, image: patch.image } : item;
+  });
+}
+
+export function applyImageSeedPreset(site, preset) {
+  const next = structuredClone(site || DEFAULT_SITE);
+  if (preset?.brand?.heroImage) next.brand = { ...next.brand, heroImage: preset.brand.heroImage };
+  if (preset?.about?.image) next.about = { ...(next.about || {}), image: preset.about.image };
+  next.services = servicesByTitle(next.services, preset?.services);
+  next.products = byIdOrTitle(next.products, preset?.products);
+  next.projects = byIdOrTitle(next.projects, preset?.projects);
+  next.posts = byIdOrTitle(next.posts, preset?.posts);
+  return next;
+}
+
 export async function saveSite(env, input) {
   const content = sanitizeDeep(input);
   const now = new Date().toISOString();

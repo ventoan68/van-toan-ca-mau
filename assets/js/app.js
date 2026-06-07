@@ -1,6 +1,18 @@
 const state = { site: null, lightboxImages: [], lightboxIndex: 0 };
 const safe = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
 const PLACEHOLDER_IMAGE = 'assets/images/placeholders/blueprint.svg';
+const ABOUT_IMAGE_FALLBACK = 'assets/images/stock/stock-mechanic-tools.svg';
+const ABOUT_FALLBACK = {
+  eyebrow: 'Giới thiệu',
+  title: 'Đơn vị đồng hành cho nhu cầu cơ khí, xây dựng và vật liệu',
+  paragraphs: [
+    'VẸN TOÀN CÀ MAU hướng đến cách làm việc thực tế, rõ ràng và gần gũi với khách hàng địa phương. Website này giúp khách hàng xem nhanh nhóm dịch vụ, sản phẩm, quy trình trao đổi và gửi yêu cầu báo giá.',
+    'Đơn vị tiếp nhận các nhu cầu về nhà thép tiền chế, khung sắt, mái tôn, cửa nhôm Xingfa, cửa kính, lan can, cầu thang, hàng rào, mái che, sắt thép, gạch và vật liệu xây dựng. Những thông tin chưa có dữ liệu chính thức được để “Đang cập nhật” để quản trị viên chỉnh sửa sau.',
+  ],
+  image: ABOUT_IMAGE_FALLBACK,
+  cardTitle: 'Phong cách làm việc',
+  cardText: 'Trao đổi rõ nhu cầu, khảo sát kỹ hiện trạng, tư vấn phương án phù hợp.',
+};
 const imageSrc = (value) => safe(value || PLACEHOLDER_IMAGE);
 const fallbackAttr = `onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}'"`;
 
@@ -44,11 +56,38 @@ function renderSite(site) {
     link.textContent = site.contact.email;
     link.href = `mailto:${site.contact.email}`;
   });
+  renderAbout(site.about || {});
   renderServices(site.services || []);
   renderFilters(site.categories || []);
   renderProducts(site.products || []);
   renderProjects(site.projects || []);
   renderPosts(site.posts || []);
+}
+
+
+function aboutData(input = {}) {
+  const paragraphs = Array.isArray(input.paragraphs) ? input.paragraphs : [];
+  return {
+    ...ABOUT_FALLBACK,
+    ...input,
+    paragraphs: [paragraphs[0] || ABOUT_FALLBACK.paragraphs[0], paragraphs[1] || ABOUT_FALLBACK.paragraphs[1]],
+    image: input.image || ABOUT_IMAGE_FALLBACK,
+  };
+}
+
+function renderAbout(input) {
+  const about = aboutData(input);
+  setText('[data-about-eyebrow]', about.eyebrow);
+  setText('[data-about-title]', about.title);
+  setText('[data-about-paragraph-1]', about.paragraphs[0]);
+  setText('[data-about-paragraph-2]', about.paragraphs[1]);
+  setText('[data-about-card-title]', about.cardTitle);
+  setText('[data-about-card-text]', about.cardText);
+  const image = document.querySelector('[data-about-image]');
+  if (image) {
+    image.src = about.image;
+    image.onerror = () => { image.onerror = null; image.src = ABOUT_IMAGE_FALLBACK; };
+  }
 }
 
 function renderServices(items) {

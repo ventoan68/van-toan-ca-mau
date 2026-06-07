@@ -27,6 +27,7 @@
         <button class="sidebar-toggle" type="button" data-sidebar-toggle>Menu quản trị</button>
         <nav data-nav>
           <button class="active" data-tab="overview">Tổng quan</button>
+          <button data-tab="services">Dịch vụ</button>
           <button data-tab="products">Sản phẩm</button>
           <button data-tab="projects">Công trình</button>
           <button data-tab="posts">Bài viết</button>
@@ -46,11 +47,17 @@
 
         <section class="tab active" id="overview">
           <div class="cards">
+            <article><b data-count-services>0</b><span>Dịch vụ</span></article>
             <article><b data-count-products>0</b><span>Sản phẩm</span></article>
             <article><b data-count-projects>0</b><span>Công trình</span></article>
             <article><b data-count-posts>0</b><span>Bài viết</span></article>
             <article><b data-count-quotes>0</b><span>Yêu cầu mới</span></article>
           </div>
+        </section>
+
+        <section class="tab" id="services">
+          <div class="toolbar"><h3>Dịch vụ</h3><button class="primary" data-add-service type="button">Thêm dịch vụ</button></div>
+          <div data-list-services class="item-list"></div>
         </section>
 
         <section class="tab" id="products">
@@ -70,7 +77,7 @@
 
         <section class="tab" id="site">
           <form class="editor-form" data-site-form>
-            <h3>Thông tin website</h3>
+            <div class="toolbar seed-toolbar"><h3>Thông tin website</h3><button class="secondary" type="button" data-seed-preview>Nạp bộ ảnh mẫu mới từ repository</button></div>
             <div class="grid2">
               <label>Tên website<input name="brand.name"></label>
               <label>Dòng phụ<input name="brand.tagline"></label>
@@ -84,13 +91,31 @@
               <label>Giờ làm việc<input name="contact.workingHours"></label>
             </div>
             <label>Mô tả hero<textarea name="brand.heroDescription" rows="4"></textarea></label>
+            <fieldset class="form-group">
+              <legend>Khối giới thiệu</legend>
+              <div class="grid2">
+                <label>Dòng nhỏ<input name="about.eyebrow"></label>
+                <label>Tiêu đề giới thiệu<input name="about.title"></label>
+                <label>Nội dung đoạn 1<textarea name="about.paragraphs.0" rows="4"></textarea></label>
+                <label>Nội dung đoạn 2<textarea name="about.paragraphs.1" rows="4"></textarea></label>
+                <label>Ảnh giới thiệu<input name="about.image"></label>
+                <label>Tiêu đề thẻ nhỏ<input name="about.cardTitle"></label>
+                <label>Nội dung thẻ nhỏ<textarea name="about.cardText" rows="3"></textarea></label>
+                <div class="upload-box single-upload">
+                  <label>Nút tải ảnh giới thiệu<input name="aboutImageFile" type="file" accept="image/*" data-about-image-file></label>
+                  <div class="preview-grid single-preview" data-about-image-preview></div>
+                  <progress value="0" max="100" data-about-upload-progress></progress>
+                  <p class="hint" data-about-upload-status>Ảnh JPG, PNG, WebP tối đa 1 MB. Có thể chọn từ desktop, Android hoặc iPhone.</p>
+                </div>
+              </div>
+            </fieldset>
             <button class="primary" type="submit">Lưu thông tin website</button>
             <p class="form-status" role="status"></p>
           </form>
         </section>
 
         <section class="tab" id="quotes">
-          <div class="toolbar"><h3>Yêu cầu báo giá</h3><select data-quote-filter><option value="">Tất cả trạng thái</option><option value="new">new</option><option value="contacted">contacted</option><option value="quoted">quoted</option><option value="completed">completed</option><option value="cancelled">cancelled</option></select></div>
+          <div class="toolbar quotes-toolbar"><h3>Yêu cầu báo giá</h3><div class="quote-tools"><label class="select-all"><input type="checkbox" data-quote-select-all> Chọn tất cả</label><button class="danger" type="button" data-delete-selected-quotes disabled>Xóa các yêu cầu đã chọn</button><select data-quote-filter><option value="">Tất cả trạng thái</option><option value="new">new</option><option value="contacted">contacted</option><option value="quoted">quoted</option><option value="completed">completed</option><option value="cancelled">cancelled</option></select></div></div>
           <div data-quotes-list class="quotes-list"></div>
         </section>
 
@@ -109,6 +134,23 @@
       </section>
     </section>
   </main>
+
+  <div class="editor-modal" data-service-modal aria-hidden="true">
+    <form class="editor-dialog" data-service-form>
+      <div class="modal-head"><h3>Sửa dịch vụ</h3><button type="button" data-service-close aria-label="Đóng">×</button></div>
+      <label>Tiêu đề<input name="title" required maxlength="160"></label>
+      <label>Mô tả<textarea name="description" rows="4" maxlength="800"></textarea></label>
+      <label>Icon<input name="icon" maxlength="20" placeholder="Ví dụ: 🚪"></label>
+      <label>Ảnh đại diện<input name="image" maxlength="500"></label>
+      <div class="upload-box single-upload">
+        <label>Chọn ảnh từ máy tính hoặc điện thoại<input name="serviceImage" type="file" accept="image/*" data-service-image-file></label>
+        <div class="preview-grid single-preview" data-service-image-preview></div>
+        <progress value="0" max="100" data-service-upload-progress></progress>
+        <p class="hint" data-service-upload-status>Ảnh JPG, PNG, WebP tối đa 1 MB. Không cần gallery cho dịch vụ.</p>
+      </div>
+      <div class="dialog-actions"><button class="secondary" type="button" data-service-close>Hủy</button><button class="primary" type="submit">Lưu dịch vụ vào D1</button></div>
+    </form>
+  </div>
 
   <div class="editor-modal" data-editor-modal aria-hidden="true">
     <form class="editor-dialog" data-editor-form>
@@ -129,6 +171,16 @@
     </form>
   </div>
 
+  <div class="editor-modal" data-seed-modal aria-hidden="true">
+    <div class="editor-dialog seed-dialog" role="dialog" aria-modal="true" aria-label="Xem trước bộ ảnh mẫu">
+      <div class="modal-head"><h3>Xem trước bộ ảnh mẫu</h3><button type="button" data-seed-close aria-label="Đóng">×</button></div>
+      <p class="hint">Chức năng này chỉ cập nhật ảnh đại diện và gallery từ repository; không ghi đè số điện thoại, Zalo, địa chỉ hoặc khu vực phục vụ.</p>
+      <div class="seed-preview-grid" data-seed-preview-grid></div>
+      <p class="form-status" data-seed-status role="status"></p>
+      <div class="dialog-actions"><button class="secondary" type="button" data-seed-close>Hủy</button><button class="primary" type="button" data-seed-apply>Nạp bộ ảnh mẫu mới từ repository</button></div>
+    </div>
+  </div>
+
   <template id="item-template">
     <article class="admin-item">
       <img alt="">
@@ -138,12 +190,12 @@
 
   <template id="quote-template">
     <article class="quote-item">
-      <div class="quote-head"><b></b><span></span></div>
+      <div class="quote-head"><label class="quote-select"><input type="checkbox" data-select-quote> <b></b></label><span></span></div>
       <p></p>
       <div class="quote-actions"></div>
       <label>Trạng thái<select name="status"><option>new</option><option>contacted</option><option>quoted</option><option>completed</option><option>cancelled</option></select></label>
       <label>Ghi chú nội bộ<textarea name="admin_note" rows="3"></textarea></label>
-      <button class="primary" type="button" data-save-quote>Lưu xử lý</button>
+      <div class="quote-footer"><button class="primary" type="button" data-save-quote>Lưu xử lý</button><button class="danger" type="button" data-delete-quote>Xóa</button></div>
     </article>
   </template>
 

@@ -4,7 +4,7 @@
     "tagline": "CƠ KHÍ • XÂY DỰNG • VẬT LIỆU",
     "heroTitle": "Giải pháp cơ khí, xây dựng và vật liệu tại Cà Mau",
     "heroDescription": "Tiếp nhận nhu cầu, khảo sát thực tế, tư vấn phương án phù hợp, báo giá rõ ràng và thi công các hạng mục cơ khí, xây dựng, vật liệu cho khách hàng tại Cà Mau và khu vực lân cận.",
-    "heroImage": "assets/images/stock/stock-steel-structure.svg"
+    "heroImage": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
   },
   "contact": {
     "phone": "Đang cập nhật",
@@ -19,7 +19,7 @@
     "Nhà thép tiền chế",
     "Khung sắt – mái tôn",
     "Cửa nhôm Xingfa",
-    "Cửa kính",
+    "Cửa kính và vách kính",
     "Lan can – cầu thang",
     "Hàng rào – mái che",
     "Gạch lát nền",
@@ -44,10 +44,10 @@
       "title": "Cửa nhôm Xingfa",
       "description": "Tư vấn mẫu cửa, hệ nhôm, kính và phụ kiện theo không gian thực tế.",
       "icon": "🚪",
-      "image": "assets/images/stock/stock-aluminum-glass-door.svg"
+      "image": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
     },
     {
-      "title": "Cửa kính",
+      "title": "Cửa kính và vách kính",
       "description": "Giải pháp cửa kính, vách kính, mặt dựng kính gọn đẹp và dễ sử dụng.",
       "icon": "🪟",
       "image": "assets/images/stock/stock-glass-door.svg"
@@ -119,22 +119,26 @@
       "name": "Cửa nhôm Xingfa theo kích thước",
       "category": "Cửa nhôm Xingfa",
       "description": "Cửa đi, cửa sổ, vách ngăn nhôm kính theo thiết kế và kích thước thực tế.",
-      "cover": "assets/images/stock/stock-aluminum-glass-door.svg",
+      "cover": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
       "images": [
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
         "assets/images/stock/stock-aluminum-glass-door.svg",
         "assets/images/stock/stock-glass-facade.svg"
-      ]
+      ],
+      "note": "Ảnh đại diện từ ảnh admin đã tải; ảnh còn lại là hình ảnh minh họa."
     },
     {
       "id": "p4",
       "name": "Cửa kính và vách kính",
-      "category": "Cửa kính",
+      "category": "Cửa kính và vách kính",
       "description": "Giải pháp kính cho cửa hàng, nhà phố, văn phòng nhỏ và không gian thương mại.",
       "cover": "assets/images/stock/stock-glass-door.svg",
       "images": [
         "assets/images/stock/stock-glass-door.svg",
-        "assets/images/stock/stock-glass-facade.svg"
-      ]
+        "assets/images/stock/stock-glass-facade.svg",
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
+      ],
+      "note": "Hình ảnh minh họa"
     },
     {
       "id": "p5",
@@ -220,14 +224,16 @@
     },
     {
       "id": "c2",
-      "name": "Mẫu cửa nhôm kính",
+      "name": "Mẫu cửa nhôm Xingfa và vách kính",
       "group": "Cửa nhôm kính",
       "area": "Cà Mau",
       "description": "Hình ảnh tham khảo về nhóm cửa nhôm kính, không phải công trình thực tế của đơn vị.",
-      "cover": "assets/images/stock/stock-glass-facade.svg",
+      "cover": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
       "images": [
+        "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
+        "assets/images/stock/stock-aluminum-glass-door.svg",
         "assets/images/stock/stock-glass-facade.svg",
-        "assets/images/stock/stock-aluminum-glass-door.svg"
+        "assets/images/stock/stock-glass-door.svg"
       ],
       "note": "Hình ảnh minh họa"
     },
@@ -259,7 +265,7 @@
       "title": "Những lưu ý khi chọn cửa nhôm Xingfa",
       "date": "2026-06-01",
       "description": "Gợi ý chọn kiểu mở, kính và phụ kiện phù hợp không gian sử dụng.",
-      "image": "assets/images/stock/stock-aluminum-glass-door.svg",
+      "image": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
       "content": "Cửa nhôm cần phù hợp vị trí lắp đặt, hướng gió mưa, nhu cầu lấy sáng và mức độ sử dụng. Nên trao đổi rõ kích thước, màu sắc, phụ kiện và yêu cầu bảo trì."
     },
     {
@@ -286,5 +292,16 @@
       "image": "assets/images/stock/stock-building-materials.svg",
       "content": "Không nên chọn vật liệu chỉ theo giá. Hãy cân nhắc vị trí sử dụng, độ bền, khả năng bảo trì, nguồn cung và tiến độ thi công để có phương án phù hợp."
     }
-  ]
+  ],
+  "about": {
+    "eyebrow": "Giới thiệu",
+    "title": "Đơn vị đồng hành cho nhu cầu cơ khí, xây dựng và vật liệu",
+    "paragraphs": [
+      "VẸN TOÀN CÀ MAU hướng đến cách làm việc thực tế, rõ ràng và gần gũi với khách hàng địa phương. Website này giúp khách hàng xem nhanh nhóm dịch vụ, sản phẩm, quy trình trao đổi và gửi yêu cầu báo giá.",
+      "Đơn vị tiếp nhận các nhu cầu về nhà thép tiền chế, khung sắt, mái tôn, cửa nhôm Xingfa, cửa kính, lan can, cầu thang, hàng rào, mái che, sắt thép, gạch và vật liệu xây dựng. Những thông tin chưa có dữ liệu chính thức được để “Đang cập nhật” để quản trị viên chỉnh sửa sau."
+    ],
+    "image": "assets/images/stock/stock-mechanic-tools.svg",
+    "cardTitle": "Phong cách làm việc",
+    "cardText": "Trao đổi rõ nhu cầu, khảo sát kỹ hiện trạng, tư vấn phương án phù hợp."
+  }
 }
