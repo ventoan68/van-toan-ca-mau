@@ -151,3 +151,86 @@ test('POST /api/admin/upload rejects non-image files', async () => {
   assert.equal(response.status, 400);
   assert.equal(body.error, 'Chỉ nhận JPG, JPEG, PNG hoặc WebP');
 });
+
+test('POST /api/admin/upload accepts exactly 10 optimized images and keeps all GitHub URLs', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url: String(url), init });
+    return new Response(JSON.stringify({ content: { sha: 'ok' } }), { status: 201, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const files = Array.from({ length: 10 }, (_, index) => new File([new Uint8Array(64 * 1024)], `batch-${index + 1}.jpg`, { type: 'image/jpeg' }));
+    const response = await uploadImages({ request: await uploadRequest(files), env: uploadEnv() });
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.files.length, 10);
+    assert.equal(calls.length, 10);
+    assert.equal(new Set(body.files.map((file) => file.url)).size, 10);
+    body.files.forEach((file, index) => {
+      assert.match(file.path, new RegExp(`^assets/uploads/.+batch-${index + 1}\\.jpg$`));
+      assert.match(file.url, /^https:\/\/raw\.githubusercontent\.com\/ventoan68\/van-toan-ca-mau\/main\/assets\/uploads\//);
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('POST /api/admin/upload rejects 11 images before calling GitHub', async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return new Response(JSON.stringify({ content: { sha: 'ok' } }), { status: 201, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const files = Array.from({ length: 11 }, (_, index) => new File([new Uint8Array(32 * 1024)], `too-many-${index + 1}.webp`, { type: 'image/webp' }));
+    const response = await uploadImages({ request: await uploadRequest(files), env: uploadEnv() });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.error, 'Mỗi lần chỉ được upload tối đa 10 ảnh.');
+    assert.equal(calls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('admin upload UI enforces 10-file batches without lowering saved gallery limits', async () => {
+  const source = await import('node:fs/promises').then((fs) => fs.readFile(new URL('../assets/js/admin.js', import.meta.url), 'utf8'));
+  assert.match(source, /const MAX_FILES_PER_BATCH = 10;/);
+  assert.match(source, /Mỗi lần chỉ được chọn tối đa 10 ảnh\. Vui lòng bỏ bớt ảnh và thử lại\./);
+  assert.match(source, /Đã chọn \$\{files\.length\}\/\$\{MAX_FILES_PER_BATCH\} ảnh\./);
+  assert.match(source, /files\.slice\(0, MAX_FILES_PER_BATCH\)\.forEach/);
+  assert.match(source, /selected\.length > MAX_FILES_PER_BATCH/);
+  assert.match(source, /Đang tối ưu ảnh \$\{index \+ 1\}\/\$\{total\}\.\.\./);
+  assert.match(source, /Đang upload ảnh \$\{index \+ 1\}\/\$\{optimized\.files\.length\} lên GitHub\.\.\./);
+  assert.match(source, /for \(let index = 0; index < optimized\.files\.length; index \+= 1\)/);
+  assert.doesNotMatch(source, /Promise\.all\(optimized\.files/);
+  assert.match(source, /setCurrentImages\(item, type, \[\.\.\.images, \.\.\.urls\]\)/);
+
+  const html = await import('node:fs/promises').then((fs) => fs.readFile(new URL('../admin.html', import.meta.url), 'utf8'));
+  assert.match(html, /<input name="gallery" type="file" accept="image\/\*" multiple>/);
+  assert.match(source, /data-cover>Đại diện/);
+});
+
+test('admin galleries keep old images and append 10 new URLs for products, projects, and posts', async () => {
+  const source = await import('node:fs/promises').then((fs) => fs.readFile(new URL('../assets/js/admin.js', import.meta.url), 'utf8'));
+  assert.match(source, /if \(type === 'posts'\) \{[\s\S]*item\.images = nextImages;[\s\S]*item\.image = nextImages\[0\]/);
+  assert.match(source, /const images = Array\.isArray\(item\.images\) \? item\.images\.filter\(Boolean\) : \[\];/);
+
+  const appendBatch = (existing, urls) => [...existing, ...urls];
+  const urls = Array.from({ length: 10 }, (_, index) => `https://raw.githubusercontent.com/ventoan68/van-toan-ca-mau/main/assets/uploads/new-${index + 1}.webp`);
+  const oldGallery = ['old-cover.webp', 'old-detail.webp'];
+  assert.deepEqual(appendBatch(oldGallery, urls), [...oldGallery, ...urls]);
+  assert.equal(appendBatch(oldGallery, urls).length, 12);
+
+  const post = { image: 'old-post.webp', images: ['old-post.webp'] };
+  const postImages = appendBatch(post.images, urls);
+  post.images = postImages;
+  post.image = postImages[0];
+  assert.equal(post.image, 'old-post.webp');
+  assert.equal(post.images.length, 11);
+  assert.deepEqual(post.images.slice(1), urls);
+});
