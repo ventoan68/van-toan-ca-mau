@@ -8,7 +8,8 @@ const ALLOWED = new Map([
   ['image/png', 'png'],
   ['image/webp', 'webp'],
 ]);
-const MAX_SIZE = 1024 * 1024;
+const MAX_SIZE = 5 * 1024 * 1024;
+const MAX_BATCH_SIZE = 20 * 1024 * 1024;
 
 function githubConfig(env) {
   const owner = cleanText(env.GITHUB_OWNER, 80);
@@ -90,7 +91,7 @@ async function githubFetch(config, path, init = {}) {
 async function uploadToGitHub(config, file) {
   if (!file || typeof file.arrayBuffer !== 'function') throw new Error('Không tìm thấy file ảnh');
   if (!ALLOWED.has(file.type)) throw new Error('Chỉ nhận JPG, JPEG, PNG hoặc WebP');
-  if (file.size > MAX_SIZE) throw new Error('Mỗi ảnh không được vượt quá 1 MB');
+  if (file.size > MAX_SIZE) throw new Error('Ảnh sau tối ưu không được vượt quá 5 MB.');
   const filename = makeFilename(file);
   const path = makeUploadPath(filename);
   const content = arrayBufferToBase64(await file.arrayBuffer());
@@ -114,6 +115,8 @@ export async function onRequestPost({ request, env }) {
     const form = await request.formData();
     const files = [...form.getAll('files'), ...form.getAll('file')].filter((file) => file && typeof file.arrayBuffer === 'function');
     if (!files.length) return json({ error: 'Không tìm thấy file ảnh' }, 400);
+    const batchSize = files.reduce((total, file) => total + (file.size || 0), 0);
+    if (batchSize > MAX_BATCH_SIZE) return json({ error: 'Tổng dung lượng một lần upload không được vượt quá 20 MB.' }, 400);
     const uploaded = [];
     for (const file of files) uploaded.push(await uploadToGitHub(config, file));
     return json({ ok: true, files: uploaded });

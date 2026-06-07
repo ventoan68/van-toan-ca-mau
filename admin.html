@@ -76,6 +76,7 @@
               <label>Dòng phụ<input name="brand.tagline"></label>
               <label>Tiêu đề hero<input name="brand.heroTitle"></label>
               <label>Ảnh hero<input name="brand.heroImage"></label>
+              <label>Upload ảnh hero<input data-site-hero-upload type="file" accept="image/*"></label>
               <label>Email<input name="contact.email" type="email"></label>
               <label>Điện thoại<input name="contact.phone"></label>
               <label>Zalo<input name="contact.zalo"></label>
@@ -84,6 +85,11 @@
               <label>Giờ làm việc<input name="contact.workingHours"></label>
             </div>
             <label>Mô tả hero<textarea name="brand.heroDescription" rows="4"></textarea></label>
+            <div class="upload-box">
+              <p class="hint">Ảnh hero cũng dùng cùng cơ chế tối ưu miễn phí: gốc tối đa 10 MB, tối ưu trong trình duyệt, lưu vào GitHub assets/uploads/ rồi URL lưu vào D1.</p>
+              <progress value="0" max="100" data-site-upload-progress></progress>
+              <p class="hint" data-site-upload-status>Chưa chọn ảnh hero.</p>
+            </div>
             <button class="primary" type="submit">Lưu thông tin website</button>
             <p class="form-status" role="status"></p>
           </form>
@@ -122,7 +128,7 @@
         <p class="hint" data-selected-count>Chưa chọn ảnh.</p>
         <div class="preview-grid" data-preview-grid></div>
         <progress value="0" max="100" data-upload-progress></progress>
-        <p class="hint" data-upload-status>Ảnh JPG, PNG, WebP tối đa 1 MB/ảnh. Có thể chọn nhiều ảnh, chọn ảnh đại diện, xóa riêng và sắp xếp ảnh.</p>
+        <p class="hint" data-upload-status>Ảnh JPG, PNG, WebP tối đa 10 MB/ảnh gốc; trình duyệt sẽ tự tối ưu trước khi lưu vào GitHub assets/uploads/.</p>
       </div>
       <div class="image-manager" data-image-manager></div>
       <div class="dialog-actions"><button class="secondary" type="button" data-editor-close>Hủy</button><button class="primary" type="submit">Lưu vào D1</button></div>

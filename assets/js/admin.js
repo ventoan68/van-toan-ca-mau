@@ -9,7 +9,11 @@ const login = $('[data-login]');
 const dash = $('[data-dashboard]');
 const statusBox = $('[data-global-status]');
 const slug = () => `item-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-const MAX_UPLOAD_SIZE = 1024 * 1024;
+const MAX_ORIGINAL_UPLOAD_SIZE = 10 * 1024 * 1024;
+const MAX_OPTIMIZED_UPLOAD_SIZE = 5 * 1024 * 1024;
+const TARGET_OPTIMIZED_SIZE = 1.5 * 1024 * 1024;
+const MAX_OPTIMIZED_EDGE = 1920;
+const ALLOWED_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const PLACEHOLDER_IMAGE = 'assets/images/placeholders/blueprint.svg';
 const isGitHubUpload = (url) => String(url || '').startsWith('https://raw.githubusercontent.com/') && String(url).includes('/assets/uploads/');
 const imageFallback = (img) => { if (!img.dataset.fallbackApplied) { img.dataset.fallbackApplied = '1'; img.src = PLACEHOLDER_IMAGE; } };
@@ -192,20 +196,196 @@ function renderImageManager() {
     </article>`).join('');
 }
 
-async function uploadFiles(files) {
-  const progress = $('[data-upload-progress]');
-  const status = $('[data-upload-status]');
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes)) return '0 KB';
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 1 : 2).replace(/\.0$/, '')} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function isAllowedImage(file) {
+  return ALLOWED_UPLOAD_TYPES.has(file.type);
+}
+
+async function detectWebpExport() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  const blob = await canvasToBlob(canvas, 'image/webp', 0.8).catch(() => null);
+  return blob?.type === 'image/webp';
+}
+
+let webpExportSupport;
+async function canExportWebp() {
+  if (webpExportSupport === undefined) webpExportSupport = await detectWebpExport();
+  return webpExportSupport;
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error(`Không thể xuất ảnh ${type}.`))), type, quality);
+  });
+}
+
+async function readExifOrientation(file) {
+  if (file.type !== 'image/jpeg') return 1;
+  const buffer = await file.slice(0, 128 * 1024).arrayBuffer();
+  const view = new DataView(buffer);
+  if (view.byteLength < 4 || view.getUint16(0) !== 0xffd8) return 1;
+  let offset = 2;
+  while (offset + 4 <= view.byteLength) {
+    const marker = view.getUint16(offset);
+    offset += 2;
+    if (marker === 0xffda || marker === 0xffd9) break;
+    const size = view.getUint16(offset);
+    if (size < 2 || offset + size > view.byteLength) break;
+    if (marker === 0xffe1 && size >= 10) {
+      const exifStart = offset + 2;
+      const exifHeader = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00];
+      if (exifHeader.every((byte, index) => view.getUint8(exifStart + index) === byte)) {
+        const tiff = exifStart + 6;
+        const little = view.getUint16(tiff) === 0x4949;
+        const firstIfd = tiff + view.getUint32(tiff + 4, little);
+        const entries = view.getUint16(firstIfd, little);
+        for (let i = 0; i < entries; i += 1) {
+          const entry = firstIfd + 2 + i * 12;
+          if (entry + 12 > view.byteLength) break;
+          if (view.getUint16(entry, little) === 0x0112) return view.getUint16(entry + 8, little) || 1;
+        }
+      }
+    }
+    offset += size;
+  }
+  return 1;
+}
+
+async function loadImageSource(file) {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      return { image: bitmap, width: bitmap.width, height: bitmap.height, orientation: 1, close: () => bitmap.close?.() };
+    } catch {
+      // Fallback below gives a clearer error and supports older browsers.
+    }
+  }
+  const orientation = await readExifOrientation(file).catch(() => 1);
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      const swaps = orientation >= 5 && orientation <= 8;
+      resolve({ image, width: swaps ? image.naturalHeight : image.naturalWidth, height: swaps ? image.naturalWidth : image.naturalHeight, orientation, close: () => {} });
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error(`Không đọc được ảnh ${file.name}. Vui lòng chọn lại file JPG, PNG hoặc WebP hợp lệ.`));
+    };
+    image.src = url;
+  });
+}
+
+function drawOrientedImage(ctx, image, width, height, orientation) {
+  if (orientation <= 1) {
+    ctx.drawImage(image, 0, 0, width, height);
+    return;
+  }
+  if (orientation === 2) { ctx.translate(width, 0); ctx.scale(-1, 1); }
+  if (orientation === 3) { ctx.translate(width, height); ctx.rotate(Math.PI); }
+  if (orientation === 4) { ctx.translate(0, height); ctx.scale(1, -1); }
+  if (orientation === 5) { ctx.rotate(0.5 * Math.PI); ctx.scale(1, -1); }
+  if (orientation === 6) { ctx.translate(width, 0); ctx.rotate(0.5 * Math.PI); }
+  if (orientation === 7) { ctx.translate(width, height); ctx.rotate(0.5 * Math.PI); ctx.scale(-1, 1); }
+  if (orientation === 8) { ctx.translate(0, height); ctx.rotate(-0.5 * Math.PI); }
+  const sourceWidth = orientation >= 5 && orientation <= 8 ? height : width;
+  const sourceHeight = orientation >= 5 && orientation <= 8 ? width : height;
+  ctx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
+}
+
+function makeOptimizedName(name, mimeType) {
+  const ext = mimeType === 'image/webp' ? 'webp' : 'jpg';
+  return `${name.replace(/\.[^.]+$/, '') || 'image'}-optimized.${ext}`;
+}
+
+async function optimizeImageFile(file) {
+  if (!isAllowedImage(file)) throw new Error(`File ${file.name} không hợp lệ. Chỉ nhận JPG, JPEG, PNG hoặc WebP.`);
+  if (file.size > MAX_ORIGINAL_UPLOAD_SIZE) throw new Error('Ảnh gốc không được vượt quá 10 MB.');
+  const source = await loadImageSource(file);
+  try {
+    const scale = Math.min(1, MAX_OPTIMIZED_EDGE / Math.max(source.width, source.height));
+    const targetWidth = Math.max(1, Math.round(source.width * scale));
+    const targetHeight = Math.max(1, Math.round(source.height * scale));
+    if (scale === 1 && file.size <= TARGET_OPTIMIZED_SIZE) {
+      return { file, originalSize: file.size, optimizedSize: file.size, skipped: true, width: source.width, height: source.height };
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) throw new Error('Trình duyệt không hỗ trợ tối ưu ảnh bằng canvas.');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+    drawOrientedImage(ctx, source.image, targetWidth, targetHeight, source.orientation);
+    const outputType = await canExportWebp() ? 'image/webp' : 'image/jpeg';
+    const qualities = [0.86, 0.82, 0.78, 0.74, 0.7, 0.66, 0.62, 0.58, 0.52, 0.46, 0.4];
+    let blob = null;
+    for (const quality of qualities) {
+      blob = await canvasToBlob(canvas, outputType, quality);
+      if (blob.size <= TARGET_OPTIMIZED_SIZE) break;
+    }
+    if (outputType === 'image/webp' && (!blob || blob.type !== 'image/webp')) {
+      blob = await canvasToBlob(canvas, 'image/jpeg', 0.86);
+    }
+    if (!blob || blob.size > MAX_OPTIMIZED_UPLOAD_SIZE) throw new Error('Ảnh sau tối ưu không được vượt quá 5 MB.');
+    return {
+      file: new File([blob], makeOptimizedName(file.name, blob.type || outputType), { type: blob.type || outputType, lastModified: Date.now() }),
+      originalSize: file.size,
+      optimizedSize: blob.size,
+      skipped: false,
+      width: targetWidth,
+      height: targetHeight,
+    };
+  } finally {
+    source.close();
+  }
+}
+
+async function optimizeSelectedFiles(files, onProgress) {
   const selected = [...files];
-  const tooLarge = selected.find((file) => file.size > MAX_UPLOAD_SIZE);
-  if (tooLarge) throw new Error(`Ảnh ${tooLarge.name} vượt quá 1 MB. Vui lòng tối ưu ảnh trước khi upload.`);
+  const optimized = [];
+  let originalTotal = 0;
+  let optimizedTotal = 0;
+  for (let index = 0; index < selected.length; index += 1) {
+    onProgress?.(index, selected.length, selected[index]);
+    const result = await optimizeImageFile(selected[index]);
+    optimized.push(result.file);
+    originalTotal += result.originalSize;
+    optimizedTotal += result.optimizedSize;
+  }
+  return { files: optimized, originalTotal, optimizedTotal };
+}
+
+async function uploadFiles(files, refs = {}) {
+  const progress = refs.progress || $('[data-upload-progress]');
+  const status = refs.status || $('[data-upload-status]');
+  const selected = [...files];
+  const originalTooLarge = selected.find((file) => file.size > MAX_ORIGINAL_UPLOAD_SIZE);
+  if (originalTooLarge) throw new Error('Ảnh gốc không được vượt quá 10 MB.');
+  progress.value = 5;
+  status.textContent = `Đang tối ưu ${selected.length} ảnh trong trình duyệt...`;
+  const optimized = await optimizeSelectedFiles(selected, (index, total, file) => {
+    progress.value = 5 + Math.round((index / Math.max(total, 1)) * 45);
+    status.textContent = `Đang tối ưu ${index + 1}/${total}: ${file.name}`;
+  });
   const form = new FormData();
-  selected.forEach((file) => form.append('files', file));
-  progress.value = 10;
-  status.textContent = `Đang upload ${selected.length} ảnh lên GitHub...`;
+  optimized.files.forEach((file) => form.append('files', file));
+  progress.value = 60;
+  status.textContent = `Đang upload ${optimized.files.length} ảnh đã tối ưu lên GitHub...`;
   const result = await api('/api/admin/upload', { method: 'POST', body: form });
   progress.value = 100;
   const uploaded = (result.files || []).map((entry) => entry.url);
-  status.textContent = `Đã upload ${uploaded.length} ảnh vào assets/uploads/ trên GitHub.`;
+  status.textContent = `Đã upload ${uploaded.length} ảnh vào assets/uploads/ trên GitHub. Trước tối ưu: ${formatBytes(optimized.originalTotal)}. Sau tối ưu: ${formatBytes(optimized.optimizedTotal)}.`;
   return uploaded;
 }
 
@@ -216,10 +396,11 @@ function previewSelectedFiles(input) {
   const files = [...input.files];
   wrap.innerHTML = '';
   count.textContent = files.length ? `Đã chọn ${files.length} ảnh.` : 'Chưa chọn ảnh.';
-  const tooLarge = files.filter((file) => file.size > MAX_UPLOAD_SIZE);
-  status.textContent = tooLarge.length
-    ? `${tooLarge.length} ảnh vượt quá 1 MB: ${tooLarge.map((file) => file.name).join(', ')}`
-    : 'Ảnh JPG, PNG, WebP tối đa 1 MB/ảnh. Có thể chọn nhiều ảnh trên desktop, Android và iPhone.';
+  const invalidType = files.filter((file) => !isAllowedImage(file));
+  const tooLarge = files.filter((file) => file.size > MAX_ORIGINAL_UPLOAD_SIZE);
+  if (tooLarge.length) status.textContent = `${tooLarge.length} ảnh vượt quá 10 MB: ${tooLarge.map((file) => file.name).join(', ')}. Ảnh gốc không được vượt quá 10 MB.`;
+  else if (invalidType.length) status.textContent = `${invalidType.length} file không hợp lệ. Chỉ nhận JPG, JPEG, PNG hoặc WebP.`;
+  else status.textContent = 'Sẽ tự động tối ưu khi lưu. Ảnh JPG, PNG, WebP tối đa 10 MB/ảnh gốc; sau tối ưu gửi lên server tối đa 5 MB/ảnh.';
   files.forEach((file) => {
     const card = document.createElement('figure');
     const url = URL.createObjectURL(file);
@@ -228,11 +409,43 @@ function previewSelectedFiles(input) {
     img.src = url;
     img.alt = file.name;
     img.onload = () => URL.revokeObjectURL(url);
-    caption.textContent = `${file.name} • ${(file.size / 1024).toFixed(0)} KB${file.size > MAX_UPLOAD_SIZE ? ' • vượt 1 MB' : ''}`;
-    card.className = file.size > MAX_UPLOAD_SIZE ? 'invalid' : '';
+    img.onerror = () => URL.revokeObjectURL(url);
+    const invalid = file.size > MAX_ORIGINAL_UPLOAD_SIZE || !isAllowedImage(file);
+    caption.textContent = `${file.name} • gốc ${formatBytes(file.size)} • ${invalid ? (file.size > MAX_ORIGINAL_UPLOAD_SIZE ? 'Ảnh gốc không được vượt quá 10 MB' : 'Không phải JPG/PNG/WebP') : 'Sẽ tự động tối ưu khi lưu'}`;
+    card.className = invalid ? 'invalid' : '';
     card.append(img, caption);
     wrap.appendChild(card);
   });
+}
+async function siteHeroUploadChange(event) {
+  const input = event.currentTarget;
+  const file = input.files?.[0];
+  const status = $('[data-site-upload-status]');
+  const progress = $('[data-site-upload-progress]');
+  if (!file) {
+    status.textContent = 'Chưa chọn ảnh hero.';
+    progress.value = 0;
+    return;
+  }
+  if (!isAllowedImage(file)) {
+    status.textContent = 'Chỉ nhận JPG, JPEG, PNG hoặc WebP.';
+    input.value = '';
+    return;
+  }
+  if (file.size > MAX_ORIGINAL_UPLOAD_SIZE) {
+    status.textContent = 'Ảnh gốc không được vượt quá 10 MB.';
+    input.value = '';
+    return;
+  }
+  try {
+    const [url] = await uploadFiles([file], { progress, status });
+    $('[data-site-form] [name="brand.heroImage"]').value = url;
+    setPath(siteData, 'brand.heroImage', url);
+    await saveSite('Đã upload và lưu ảnh hero vào D1.');
+    input.value = '';
+  } catch (error) {
+    status.textContent = error.message || 'Không thể upload ảnh hero.';
+  }
 }
 
 async function editorSubmit(event) {
@@ -252,8 +465,13 @@ async function editorSubmit(event) {
   }
   item.description = fd.get('description');
   const files = [...event.currentTarget.gallery.files];
-  if (files.some((file) => file.size > MAX_UPLOAD_SIZE)) {
-    $('[data-upload-status]').textContent = 'Có ảnh vượt quá 1 MB. Vui lòng bỏ ảnh đó hoặc nén lại trước khi lưu.';
+  const invalidFile = files.find((file) => !isAllowedImage(file));
+  if (invalidFile) {
+    $('[data-upload-status]').textContent = 'Chỉ nhận JPG, JPEG, PNG hoặc WebP.';
+    return;
+  }
+  if (files.some((file) => file.size > MAX_ORIGINAL_UPLOAD_SIZE)) {
+    $('[data-upload-status]').textContent = 'Ảnh gốc không được vượt quá 10 MB.';
     return;
   }
   if (files.length) {
@@ -464,6 +682,7 @@ $$('[data-editor-close]').forEach((button) => button.addEventListener('click', c
 $('[data-editor-form]').addEventListener('submit', editorSubmit);
 $('[data-image-manager]').addEventListener('click', imageManagerClick);
 $('[data-editor-form] [name="gallery"]').addEventListener('change', (event) => previewSelectedFiles(event.currentTarget));
+$('[data-site-hero-upload]').addEventListener('change', siteHeroUploadChange);
 $('[data-quote-filter]').addEventListener('change', async () => { selectedQuoteIds.clear(); await loadQuotes(); renderQuotes(); });
 $('[data-quote-select-all]').addEventListener('change', (event) => {
   quotes.forEach((quote) => { if (event.currentTarget.checked) selectedQuoteIds.add(String(quote.id)); else selectedQuoteIds.delete(String(quote.id)); });
