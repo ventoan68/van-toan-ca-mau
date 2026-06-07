@@ -234,3 +234,50 @@ test('admin galleries keep old images and append 10 new URLs for products, proje
   assert.equal(post.images.length, 11);
   assert.deepEqual(post.images.slice(1), urls);
 });
+
+test('admin exposes services CRUD and about form fields', async () => {
+  const fs = await import('node:fs/promises');
+  const [html, adminSource, appSource] = await Promise.all([
+    fs.readFile(new URL('../admin.html', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../assets/js/admin.js', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../assets/js/app.js', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(html, /<button data-tab="services">Dịch vụ<\/button>/);
+  assert.match(html, /<section class="tab" id="services">/);
+  assert.match(html, /data-list-services/);
+  assert.match(html, /data-add-service/);
+  assert.match(html, /name="about\.eyebrow"/);
+  assert.match(html, /name="about\.title"/);
+  assert.match(html, /name="about\.paragraph1"/);
+  assert.match(html, /name="about\.paragraph2"/);
+  assert.match(html, /name="about\.image"/);
+  assert.match(html, /name="about\.cardTitle"/);
+  assert.match(html, /name="about\.cardText"/);
+  assert.match(html, /data-about-upload/);
+
+  assert.match(adminSource, /function serviceDefaults\(\)/);
+  assert.match(adminSource, /function openServiceEditor\(index\)/);
+  assert.match(adminSource, /async function saveService\(event\)/);
+  assert.match(adminSource, /async function deleteService\(index\)/);
+  assert.match(adminSource, /async function uploadServiceImage\(event\)/);
+  assert.match(adminSource, /await uploadFiles\(\[file\], \{ progress: refs\.progress, status: refs\.status \}\)/);
+  assert.match(adminSource, /siteData\.about = \{ \.\.\.aboutDefaults\(\), \.\.\.\(siteData\.about \|\| \{\}\) \}/);
+
+  assert.match(appSource, /function renderAbout\(about = \{\}\)/);
+  assert.match(appSource, /renderAbout\(site\.about \|\| \{\}\)/);
+  assert.match(appSource, /ABOUT_FALLBACK_IMAGE = 'assets\/images\/stock\/stock-mechanic-tools\.svg'/);
+});
+
+test('default site content includes editable about and service ids', async () => {
+  const fs = await import('node:fs/promises');
+  const site = JSON.parse(await fs.readFile(new URL('../data/site.json', import.meta.url), 'utf8'));
+  assert.equal(site.about.eyebrow, 'Giới thiệu');
+  assert.equal(site.about.image, 'assets/images/stock/stock-mechanic-tools.svg');
+  assert.ok(site.about.paragraph1);
+  assert.ok(site.about.paragraph2);
+  assert.ok(site.about.cardTitle);
+  assert.ok(site.about.cardText);
+  assert.ok(site.services.length >= 1);
+  assert.ok(site.services.every((service) => service.id && service.title && service.description && service.icon && service.image));
+});

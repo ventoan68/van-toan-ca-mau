@@ -15,6 +15,15 @@ export const DEFAULT_SITE = {
     "workingHours": "Đang cập nhật",
     "primaryCta": "Yêu cầu báo giá"
   },
+  "about": {
+    "eyebrow": "Giới thiệu",
+    "title": "Đơn vị đồng hành cho nhu cầu cơ khí, xây dựng và vật liệu",
+    "paragraph1": "VẸN TOÀN CÀ MAU hướng đến cách làm việc thực tế, rõ ràng và gần gũi với khách hàng địa phương. Website này giúp khách hàng xem nhanh nhóm dịch vụ, sản phẩm, quy trình trao đổi và gửi yêu cầu báo giá.",
+    "paragraph2": "Đơn vị tiếp nhận các nhu cầu về nhà thép tiền chế, khung sắt, mái tôn, cửa nhôm Xingfa, cửa kính, lan can, cầu thang, hàng rào, mái che, sắt thép, gạch và vật liệu xây dựng. Những thông tin chưa có dữ liệu chính thức được để “Đang cập nhật” để quản trị viên chỉnh sửa sau.",
+    "image": "assets/images/stock/stock-mechanic-tools.svg",
+    "cardTitle": "Phong cách làm việc",
+    "cardText": "Trao đổi rõ nhu cầu, khảo sát kỹ hiện trạng, tư vấn phương án phù hợp."
+  },
   "categories": [
     "Nhà thép tiền chế",
     "Khung sắt – mái tôn",
@@ -32,61 +41,71 @@ export const DEFAULT_SITE = {
       "title": "Nhà thép tiền chế",
       "description": "Tư vấn khung thép, mặt bằng và giải pháp thi công phù hợp nhu cầu sử dụng.",
       "icon": "🏗️",
-      "image": "assets/images/stock/stock-pre-engineered-building.svg"
+      "image": "assets/images/stock/stock-pre-engineered-building.svg",
+      "id": "nha-thep-tien-che"
     },
     {
       "title": "Khung sắt – mái tôn",
       "description": "Thi công khung sắt, mái tôn, mái che theo hiện trạng công trình.",
       "icon": "🔩",
-      "image": "assets/images/stock/stock-metal-roof-frame.svg"
+      "image": "assets/images/stock/stock-metal-roof-frame.svg",
+      "id": "khung-sat-mai-ton"
     },
     {
       "title": "Cửa nhôm Xingfa",
       "description": "Tư vấn mẫu cửa, hệ nhôm, kính và phụ kiện theo không gian thực tế.",
       "icon": "🚪",
-      "image": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg"
+      "image": "assets/uploads/1780748480991-a92979af5e-tai-xuong-1.jpg",
+      "id": "cua-nhom-xingfa"
     },
     {
       "title": "Cửa kính và vách kính",
       "description": "Giải pháp cửa kính, vách kính, mặt dựng kính gọn đẹp và dễ sử dụng.",
       "icon": "🪟",
-      "image": "assets/images/stock/stock-glass-door.svg"
+      "image": "assets/images/stock/stock-glass-door.svg",
+      "id": "cua-kinh-vach-kinh"
     },
     {
       "title": "Lan can – cầu thang",
       "description": "Gia công lan can, cầu thang sắt, inox hoặc kính theo phong cách công trình.",
       "icon": "🧱",
-      "image": "assets/images/stock/stock-railing-stairs.svg"
+      "image": "assets/images/stock/stock-railing-stairs.svg",
+      "id": "lan-can-cau-thang"
     },
     {
       "title": "Hàng rào – mái che",
       "description": "Thiết kế hàng rào, cổng, mái che bền chắc và hài hòa với mặt tiền.",
       "icon": "🏡",
-      "image": "assets/images/stock/stock-fence-awning.svg"
+      "image": "assets/images/stock/stock-fence-awning.svg",
+      "id": "hang-rao-mai-che"
     },
     {
       "title": "Gạch lát nền",
       "description": "Gợi ý vật liệu lát nền phù hợp khu vực sử dụng, ngân sách và phong cách.",
       "icon": "◻️",
-      "image": "assets/images/stock/stock-floor-tiles.svg"
+      "image": "assets/images/stock/stock-floor-tiles.svg",
+      "id": "gach-lat-nen"
     },
     {
       "title": "Gạch ốp tường",
       "description": "Tư vấn mẫu gạch ốp tường cho nhà ở, cửa hàng và công trình phụ trợ.",
       "icon": "▦",
-      "image": "assets/images/stock/stock-wall-tiles.svg"
+      "image": "assets/images/stock/stock-wall-tiles.svg",
+      "id": "gach-op-tuong"
     },
     {
       "title": "Sắt thép xây dựng",
       "description": "Cung cấp, tư vấn chủng loại sắt thép theo nhu cầu xây dựng thực tế.",
       "icon": "🧲",
-      "image": "assets/images/stock/stock-construction-steel.svg"
+      "image": "assets/images/stock/stock-construction-steel.svg",
+      "id": "sat-thep-xay-dung"
     },
     {
       "title": "Vật liệu xây dựng",
       "description": "Hỗ trợ lựa chọn vật liệu cơ bản, phù hợp tiến độ và hạng mục thi công.",
       "icon": "🧰",
-      "image": "assets/images/stock/stock-building-materials.svg"
+      "image": "assets/images/stock/stock-building-materials.svg",
+      "id": "vat-lieu-xay-dung"
     }
   ],
   "products": [
