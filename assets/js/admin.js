@@ -1,5 +1,6 @@
 let siteData = null;
 let currentEdit = null;
+let currentServiceIndex = null;
 let quotes = [];
 const selectedQuoteIds = new Set();
 
@@ -18,6 +19,7 @@ const TARGET_OPTIMIZED_SIZE = 1.5 * 1024 * 1024;
 const MAX_OPTIMIZED_EDGE = 1920;
 const ALLOWED_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const PLACEHOLDER_IMAGE = 'assets/images/placeholders/blueprint.svg';
+const ABOUT_FALLBACK_IMAGE = 'assets/images/stock/stock-mechanic-tools.svg';
 const isGitHubUpload = (url) => String(url || '').startsWith('https://raw.githubusercontent.com/') && String(url).includes('/assets/uploads/');
 const imageFallback = (img) => { if (!img.dataset.fallbackApplied) { img.dataset.fallbackApplied = '1'; img.src = PLACEHOLDER_IMAGE; } };
 const safe = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
@@ -43,8 +45,11 @@ async function api(path, options = {}) {
 }
 
 function getPath(obj, path) { return path.split('.').reduce((acc, key) => acc?.[key], obj); }
-function setPath(obj, path, value) { const parts = path.split('.'); let cur = obj; while (parts.length > 1) cur = cur[parts.shift()]; cur[parts[0]] = value; }
+function setPath(obj, path, value) { const parts = path.split('.'); let cur = obj; while (parts.length > 1) { const key = parts.shift(); cur[key] = cur[key] && typeof cur[key] === 'object' ? cur[key] : {}; cur = cur[key]; } cur[parts[0]] = value; }
 function itemName(type) { return type === 'products' ? 'sản phẩm' : type === 'projects' ? 'công trình' : 'bài viết'; }
+function serviceDefaults() { return { id: slug(), title: 'Dịch vụ mới', description: 'Mô tả ngắn cho dịch vụ', icon: '🛠️', image: 'assets/images/stock/stock-blueprint.svg' }; }
+function aboutDefaults() { return { eyebrow: 'Giới thiệu', title: 'Đơn vị đồng hành cho nhu cầu cơ khí, xây dựng và vật liệu', paragraph1: 'VẸN TOÀN CÀ MAU hướng đến cách làm việc thực tế, rõ ràng và gần gũi với khách hàng địa phương. Website này giúp khách hàng xem nhanh nhóm dịch vụ, sản phẩm, quy trình trao đổi và gửi yêu cầu báo giá.', paragraph2: 'Đơn vị tiếp nhận các nhu cầu về nhà thép tiền chế, khung sắt, mái tôn, cửa nhôm Xingfa, cửa kính, lan can, cầu thang, hàng rào, mái che, sắt thép, gạch và vật liệu xây dựng.', image: ABOUT_FALLBACK_IMAGE, cardTitle: 'Phong cách làm việc', cardText: 'Trao đổi rõ nhu cầu, khảo sát kỹ hiện trạng, tư vấn phương án phù hợp.' }; }
+function normalizeSiteData() { siteData.about = { ...aboutDefaults(), ...(siteData.about || {}) }; siteData.services = Array.isArray(siteData.services) ? siteData.services.map((service) => ({ ...serviceDefaults(), ...service, id: service.id || slug() })) : []; }
 function itemDefaults(type) {
   if (type === 'posts') return { id: slug(), title: 'Bài viết mới', date: new Date().toISOString().slice(0, 10), description: 'Mô tả ngắn', content: 'Nội dung bài viết', image: 'assets/images/stock/stock-blueprint.svg', images: ['assets/images/stock/stock-blueprint.svg'] };
   return { id: slug(), name: type === 'products' ? 'Sản phẩm mới' : 'Công trình mới', category: siteData.categories?.[0] || 'Đang cập nhật', group: 'Hình ảnh minh họa', area: 'Cà Mau', description: 'Mô tả ngắn', cover: 'assets/images/stock/stock-blueprint.svg', images: ['assets/images/stock/stock-blueprint.svg'], note: 'Hình ảnh minh họa' };
@@ -86,6 +91,7 @@ async function logout() {
 
 async function loadData() {
   siteData = await api('/api/admin/site');
+  normalizeSiteData();
   await loadQuotes();
   renderAdmin();
   showStatus('Đã tải dữ liệu production từ D1.', 'success');
@@ -94,15 +100,18 @@ async function loadData() {
 async function saveSite(message = 'Đã lưu nội dung website vào D1.') {
   const data = await api('/api/admin/site', { method: 'PUT', body: JSON.stringify(siteData) });
   siteData = data.site;
+  normalizeSiteData();
   renderAdmin();
   showStatus(message, 'success');
 }
 
 function renderAdmin() {
+  $('[data-count-services]').textContent = siteData.services?.length || 0;
   $('[data-count-products]').textContent = siteData.products?.length || 0;
   $('[data-count-projects]').textContent = siteData.projects?.length || 0;
   $('[data-count-posts]').textContent = siteData.posts?.length || 0;
   $('[data-count-quotes]').textContent = quotes.filter((quote) => quote.status === 'new').length;
+  renderServicesAdmin();
   renderList('[data-list-products]', siteData.products || [], 'category', 'products');
   renderList('[data-list-projects]', siteData.projects || [], 'group', 'projects');
   renderList('[data-list-posts]', siteData.posts || [], 'date', 'posts');
@@ -134,8 +143,97 @@ function renderList(selector, items, meta, type) {
 }
 
 function fillSiteForm() {
+  siteData.about = { ...aboutDefaults(), ...(siteData.about || {}) };
   $$('[data-site-form] [name]').forEach((input) => { input.value = getPath(siteData, input.name) || ''; });
+  updateAboutPreview();
 }
+
+function updateAboutPreview() {
+  const preview = $('[data-about-preview]');
+  const input = $('[data-site-form] [name="about.image"]');
+  if (!preview || !input) return;
+  preview.src = input.value || ABOUT_FALLBACK_IMAGE;
+  preview.onerror = () => { preview.onerror = null; preview.src = ABOUT_FALLBACK_IMAGE; };
+}
+
+function renderServicesAdmin() {
+  const wrap = $('[data-list-services]');
+  const tpl = $('#item-template');
+  if (!wrap || !tpl) return;
+  wrap.innerHTML = '';
+  const items = siteData.services || [];
+  if (!items.length) {
+    wrap.innerHTML = '<p class="empty">Chưa có dịch vụ. Bấm “Thêm dịch vụ” để tạo mới.</p>';
+    return;
+  }
+  items.forEach((service, index) => {
+    const node = tpl.content.cloneNode(true);
+    const img = node.querySelector('img');
+    img.src = service.image || PLACEHOLDER_IMAGE;
+    img.onerror = () => imageFallback(img);
+    img.alt = service.title || 'Dịch vụ';
+    node.querySelector('b').textContent = service.title || 'Dịch vụ chưa có tiêu đề';
+    node.querySelector('p').textContent = service.description || '';
+    node.querySelector('small').textContent = `${service.icon || '🛠️'} • ${service.id || ''}`;
+    node.querySelector('[data-edit]').addEventListener('click', () => openServiceEditor(index));
+    node.querySelector('[data-delete]').addEventListener('click', () => deleteService(index));
+    wrap.appendChild(node);
+  });
+}
+
+function openServiceEditor(index) {
+  currentServiceIndex = index;
+  const service = siteData.services[index];
+  const modal = $('[data-service-modal]');
+  modal.querySelector('[name="id"]').value = service.id || slug();
+  modal.querySelector('[name="title"]').value = service.title || '';
+  modal.querySelector('[name="description"]').value = service.description || '';
+  modal.querySelector('[name="icon"]').value = service.icon || '';
+  modal.querySelector('[name="image"]').value = service.image || '';
+  modal.querySelector('[name="imageFile"]').value = '';
+  $('[data-service-upload-progress]').value = 0;
+  $('[data-service-upload-status]').textContent = 'Chưa chọn ảnh dịch vụ.';
+  updateServiceImagePreview();
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeServiceEditor() {
+  const modal = $('[data-service-modal]');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  $('[data-service-form]').reset();
+  currentServiceIndex = null;
+}
+
+function updateServiceImagePreview() {
+  const preview = $('[data-service-image-preview]');
+  const input = $('[data-service-form] [name="image"]');
+  if (!preview || !input) return;
+  preview.src = input.value || PLACEHOLDER_IMAGE;
+  preview.onerror = () => { preview.onerror = null; preview.src = PLACEHOLDER_IMAGE; };
+}
+
+async function saveService(event) {
+  event.preventDefault();
+  if (currentServiceIndex === null) return;
+  const service = siteData.services[currentServiceIndex];
+  const fd = new FormData(event.currentTarget);
+  service.id = fd.get('id') || service.id || slug();
+  service.title = fd.get('title') || 'Dịch vụ chưa có tiêu đề';
+  service.description = fd.get('description') || '';
+  service.icon = fd.get('icon') || '🛠️';
+  service.image = fd.get('image') || PLACEHOLDER_IMAGE;
+  closeServiceEditor();
+  await saveSite('Đã lưu dịch vụ vào D1.');
+}
+
+async function deleteService(index) {
+  if (!confirm('Xóa dịch vụ này?')) return;
+  siteData.services.splice(index, 1);
+  await saveSite('Đã xóa dịch vụ.');
+}
+
 
 function switchTab(button) {
   $$('[data-tab]').forEach((item) => item.classList.remove('active'));
@@ -435,6 +533,28 @@ function previewSelectedFiles(input) {
     wrap.appendChild(card);
   });
 }
+async function uploadSingleImage(input, refs) {
+  const file = input.files?.[0];
+  if (!file) {
+    refs.status.textContent = refs.emptyMessage || 'Chưa chọn ảnh.';
+    refs.progress.value = 0;
+    return null;
+  }
+  if (!isAllowedImage(file)) {
+    refs.status.textContent = 'Chỉ nhận JPG, JPEG, PNG hoặc WebP.';
+    input.value = '';
+    return null;
+  }
+  if (file.size > MAX_ORIGINAL_UPLOAD_SIZE) {
+    refs.status.textContent = 'Ảnh gốc không được vượt quá 10 MB.';
+    input.value = '';
+    return null;
+  }
+  const [url] = await uploadFiles([file], { progress: refs.progress, status: refs.status });
+  input.value = '';
+  return url;
+}
+
 async function siteHeroUploadChange(event) {
   const input = event.currentTarget;
   const file = input.files?.[0];
@@ -463,6 +583,37 @@ async function siteHeroUploadChange(event) {
     input.value = '';
   } catch (error) {
     status.textContent = error.message || 'Không thể upload ảnh hero.';
+  }
+}
+
+async function uploadAboutImage(event) {
+  const input = event.currentTarget;
+  const status = $('[data-about-upload-status]');
+  const progress = $('[data-about-upload-progress]');
+  try {
+    const url = await uploadSingleImage(input, { status, progress, emptyMessage: 'Chưa chọn ảnh giới thiệu.' });
+    if (!url) return;
+    $('[data-site-form] [name="about.image"]').value = url;
+    setPath(siteData, 'about.image', url);
+    updateAboutPreview();
+    status.textContent = 'Đã upload ảnh giới thiệu. Bấm “Lưu thông tin website” để lưu URL vào D1.';
+  } catch (error) {
+    status.textContent = error.message || 'Không thể upload ảnh giới thiệu.';
+  }
+}
+
+async function uploadServiceImage(event) {
+  const input = event.currentTarget;
+  const status = $('[data-service-upload-status]');
+  const progress = $('[data-service-upload-progress]');
+  try {
+    const url = await uploadSingleImage(input, { status, progress, emptyMessage: 'Chưa chọn ảnh dịch vụ.' });
+    if (!url) return;
+    $('[data-service-form] [name="image"]').value = url;
+    updateServiceImagePreview();
+    status.textContent = 'Đã upload ảnh dịch vụ. Bấm “Lưu dịch vụ vào D1” để lưu URL.';
+  } catch (error) {
+    status.textContent = error.message || 'Không thể upload ảnh dịch vụ.';
   }
 }
 
@@ -672,6 +823,7 @@ async function applySeedImages() {
   try {
     const data = await api('/api/admin/site/seed-images', { method: 'POST', body: '{}' });
     siteData = data.site;
+    normalizeSiteData();
     closeSeedPreview();
     renderAdmin();
     showStatus(data.message || 'Đã nạp bộ ảnh mẫu mới từ repository.', 'success');
@@ -705,6 +857,17 @@ $('[data-editor-form]').addEventListener('submit', editorSubmit);
 $('[data-image-manager]').addEventListener('click', imageManagerClick);
 $('[data-editor-form] [name="gallery"]').addEventListener('change', (event) => previewSelectedFiles(event.currentTarget));
 $('[data-site-hero-upload]').addEventListener('change', siteHeroUploadChange);
+$('[data-about-upload]').addEventListener('change', uploadAboutImage);
+$('[data-site-form] [name="about.image"]').addEventListener('input', updateAboutPreview);
+$('[data-add-service]').addEventListener('click', async () => {
+  siteData.services.unshift(serviceDefaults());
+  await saveSite('Đã thêm dịch vụ mới.');
+  openServiceEditor(0);
+});
+$('[data-service-form]').addEventListener('submit', saveService);
+$('[data-service-image-upload]').addEventListener('change', uploadServiceImage);
+$('[data-service-form] [name="image"]').addEventListener('input', updateServiceImagePreview);
+$$('[data-service-close]').forEach((button) => button.addEventListener('click', closeServiceEditor));
 $('[data-quote-filter]').addEventListener('change', async () => { selectedQuoteIds.clear(); await loadQuotes(); renderQuotes(); });
 $('[data-quote-select-all]').addEventListener('change', (event) => {
   quotes.forEach((quote) => { if (event.currentTarget.checked) selectedQuoteIds.add(String(quote.id)); else selectedQuoteIds.delete(String(quote.id)); });
